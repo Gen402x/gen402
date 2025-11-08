@@ -14,12 +14,14 @@ import {
 // USDC Mint Address (Solana Mainnet)
 export const USDC_MINT_ADDRESS = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 
-// Get payment wallet address from environment
-const paymentWalletAddress = process.env.NEXT_PUBLIC_PAYMENT_WALLET_ADDRESS;
-if (!paymentWalletAddress) {
-  throw new Error('NEXT_PUBLIC_PAYMENT_WALLET_ADDRESS is not configured');
-}
-export const PAYMENT_WALLET_ADDRESS = new PublicKey(paymentWalletAddress);
+// Get payment wallet address from environment (lazy loaded to avoid build-time errors)
+export const getPaymentWalletAddress = (): PublicKey => {
+  const paymentWalletAddress = process.env.NEXT_PUBLIC_PAYMENT_WALLET_ADDRESS;
+  if (!paymentWalletAddress) {
+    throw new Error('NEXT_PUBLIC_PAYMENT_WALLET_ADDRESS is not configured');
+  }
+  return new PublicKey(paymentWalletAddress);
+};
 
 // USDC decimals
 export const USDC_DECIMALS = 6;
@@ -40,10 +42,11 @@ export async function sendDirectUSDCPayment(
   usdAmount: number
 ): Promise<USDCPaymentResult> {
   try {
+    const paymentWallet = getPaymentWalletAddress();
     console.log('🔄 Starting USDC payment...');
     console.log('💵 USD amount:', usdAmount);
     console.log('👛 From:', payerPublicKey.toBase58());
-    console.log('🎯 To:', PAYMENT_WALLET_ADDRESS.toBase58());
+    console.log('🎯 To:', paymentWallet.toBase58());
 
     // Convert USD to USDC (1:1, but with 6 decimals)
     const usdcAmountRaw = Math.floor(usdAmount * Math.pow(10, USDC_DECIMALS));
@@ -61,7 +64,7 @@ export async function sendDirectUSDCPayment(
 
     const toTokenAccount = await getAssociatedTokenAddress(
       USDC_MINT_ADDRESS,
-      PAYMENT_WALLET_ADDRESS,
+      paymentWallet,
       false,
       TOKEN_PROGRAM_ID,
       ASSOCIATED_TOKEN_PROGRAM_ID
@@ -119,7 +122,7 @@ export async function sendDirectUSDCPayment(
         createAssociatedTokenAccountInstruction(
           payerPublicKey,
           toTokenAccount,
-          PAYMENT_WALLET_ADDRESS,
+          paymentWallet,
           USDC_MINT_ADDRESS,
           TOKEN_PROGRAM_ID,
           ASSOCIATED_TOKEN_PROGRAM_ID
