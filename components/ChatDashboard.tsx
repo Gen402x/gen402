@@ -9,6 +9,7 @@ import { Plus, ArrowUpRight, Trash2 } from 'lucide-react';
 import { imageModels, videoModels } from '@/lib/models';
 import ResultDisplay from '@/components/ResultDisplay';
 import GenerationProgress from '@/components/GenerationProgress';
+import PaymentModal from '@/components/PaymentModal';
 import { sendUSDCPayment } from '@/lib/solana-payment';
 
 type Chat = {
@@ -96,6 +97,19 @@ export default function ChatDashboard() {
     prompt: string;
     modelName: string;
   } | null>(null);
+
+  const [paymentModalState, setPaymentModalState] = useState<{
+    isOpen: boolean;
+    amount: number;
+    modelName: string;
+    generationId: string;
+    metadata?: PaymentRequestMetadata;
+  }>({
+    isOpen: false,
+    amount: 0,
+    modelName: '',
+    generationId: '',
+  });
 
   // Model settings
   const [aspectRatio, setAspectRatio] = useState<'landscape' | 'portrait'>('landscape');
@@ -770,89 +784,15 @@ export default function ChatDashboard() {
       return;
     }
 
-    if (!connection) {
-      alert('Solana connection unavailable. Please try again.');
-      return;
-    }
-
-    if (!signTransaction) {
-      alert('Your wallet does not support direct signing.');
-      return;
-    }
-
-    // Always use USDC payment
-    const actualAmount = metadata.amountUSD;
-
-    console.log('🔍 Generation ID:', metadata.generationId);
-    console.log('💵 Payment Amount:', actualAmount, 'USDC');
-
-    setPayingGenerationId(metadata.generationId);
-
-    await appendMessage(metadata.chatId, {
-      role: 'system',
-      metadata: {
-        type: 'paymentStatus',
-        status: 'processing',
-        generationId: metadata.generationId,
-        amountUSD: actualAmount,
-        paymentMethod: 'usdc',
-      },
+    // Open PaymentModal instead of direct payment
+    setPaymentModalState({
+      isOpen: true,
+      amount: metadata.amountUSD,
+      modelName: metadata.modelName,
+      generationId: metadata.generationId || '',
+      metadata: metadata,
     });
-
-    try {
-      // Use USDC payment
-      const { sendDirectUSDCPayment } = await import('@/lib/usdc-payment');
-      const result = await sendDirectUSDCPayment(connection, publicKey, signTransaction, actualAmount);
-
-      if (!result.success || !result.signature) {
-        await appendMessage(metadata.chatId, {
-          role: 'system',
-          metadata: {
-            type: 'paymentStatus',
-            status: 'error',
-            generationId: metadata.generationId,
-            errorMessage: result.error || 'Payment failed. Please try again.',
-          },
-        });
-        return;
-      }
-
-      await appendMessage(metadata.chatId, {
-        role: 'system',
-        metadata: {
-          type: 'paymentStatus',
-          status: 'completed',
-          generationId: metadata.generationId,
-          transactionSignature: result.signature,
-        },
-      });
-
-      await addStatusMessage(metadata.chatId, 'processing', {
-        modelId: metadata.modelId,
-        modelName: metadata.modelName,
-        generationType: metadata.generationType,
-        prompt: metadata.prompt,
-      });
-
-      await completeGenerationAfterPayment({
-        ...metadata,
-        generationId: metadata.generationId,
-      }, result.signature);
-    } catch (error: any) {
-      console.error('Payment processing error:', error);
-      await appendMessage(metadata.chatId, {
-        role: 'system',
-        metadata: {
-          type: 'paymentStatus',
-          status: 'error',
-          generationId: metadata.generationId,
-          errorMessage: error?.message || 'Unexpected payment error. Please try again.',
-        },
-      });
-    } finally {
-      setPayingGenerationId(null);
-    }
-  }, [appendMessage, completeGenerationAfterPayment, connection, connected, publicKey, signTransaction, isGenerating, addStatusMessage]);
+  }, [connected, publicKey]);
 
   const handleSubmit = useCallback(async () => {
     if (!prompt.trim()) return;
@@ -982,7 +922,7 @@ export default function ChatDashboard() {
         ? 'Processing…'
         : isErrored
         ? 'Try again'
-        : `Pay $${usdcDisplayAmount.toFixed(3)} USDC`;
+        : `Choose Payment Method`;
       const buttonClass = isCompleted
         ? 'bg-forge-orange text-white cursor-default'
         : isProcessingStatus || paying || isGenerating
@@ -1042,11 +982,14 @@ export default function ChatDashboard() {
             </div>
           </div>
 
-          {/* Payment with USDC */}
+          {/* Payment Options */}
           {!isCompleted && (
             <div className="space-y-2">
               <p className="text-[10px] text-center text-white/50">
-                Payment: <span className="font-bold text-white">${usdcDisplayAmount.toFixed(3)} USDC</span>
+                Payment: <span className="font-bold text-white">${usdcDisplayAmount.toFixed(3)} USD</span>
+              </p>
+              <p className="text-[9px] text-center text-white/40">
+                Pay with GEN402 tokens or USDC
               </p>
             </div>
           )}
@@ -1224,6 +1167,7 @@ export default function ChatDashboard() {
   }
 
   return (
+    <>
     <div className="h-[calc(100vh-80px)] flex flex-col">
       {/* Top Chat Bar */}
       <div className="sticky top-0 z-10 border-b border-white/10 bg-black/40 backdrop-blur-xl">
@@ -1770,6 +1714,45 @@ export default function ChatDashboard() {
         </div>
       </div>
     </div>
+
+    {/* Payment Modal */}
+    <PaymentModal
+      isOpen={paymentModalState.isOpen}
+      onClose={() => setPaymentModalState({ ...paymentModalState, isOpen: false })}
+      amount={paymentModalState.amount}
+      modelName={paymentModalState.modelName}
+      generationId={paymentModalState.generationId}
+      onPaymentComplete={async (signature) => {
+        // Close modal
+        setPaymentModalState({ ...paymentModalState, isOpen: false });
+        
+        // Complete generation with signature
+        if (paymentModalState.metadata) {
+          const metadata = paymentModalState.metadata;
+          
+          // Update payment status
+          await appendMessage(metadata.chatId, {
+            role: 'system',
+            metadata: {
+              type: 'paymentStatus',
+              status: 'completed',
+              generationId: metadata.generationId,
+              transactionSignature: signature,
+            },
+          });
+
+          await addStatusMessage(metadata.chatId, 'processing', {
+            modelId: metadata.modelId,
+            modelName: metadata.modelName,
+            generationType: metadata.generationType,
+            prompt: metadata.prompt,
+          });
+
+          await completeGenerationAfterPayment(metadata, signature);
+        }
+      }}
+    />
+    </>
   );
 }
 

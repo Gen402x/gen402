@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Loader2, Wallet, RefreshCw } from 'lucide-react';
+import { X, Loader2, Wallet } from 'lucide-react';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
-import { sendUSDCPayment, getTokenPriceUSD, calculateTokenAmount } from '@/lib/solana-payment';
 import { sendDirectUSDCPayment } from '@/lib/usdc-payment';
+import { sendCustomTokenPayment, calculateCustomTokenAmount } from '@/lib/custom-token-payment';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -27,55 +27,46 @@ export default function PaymentModal({
   const [isVisible, setIsVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [transactionSignature, setTransactionSignature] = useState('');
-  const [tokenPrice, setTokenPrice] = useState<number | null>(null);
-  const [payperAmount, setPayperAmount] = useState<number>(0);
-  const [baseAmount, setBaseAmount] = useState<number>(0);
-  const [feeAmount, setFeeAmount] = useState<number>(0);
-  const [priceSource, setPriceSource] = useState<string>('');
   const [isLoadingPrice, setIsLoadingPrice] = useState(true);
   const [showDetails, setShowDetails] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'payper' | 'usdc'>('payper');
+  const [paymentMethod, setPaymentMethod] = useState<'usdc' | 'custom'>('custom');
   const [usdcAmount, setUsdcAmount] = useState<number>(0);
+  const [customTokenAmount, setCustomTokenAmount] = useState<number>(0);
+  const [customTokenPrice, setCustomTokenPrice] = useState<number | null>(null);
   
   const { connected, publicKey, signTransaction } = useWallet();
   const { connection } = useConnection();
 
-  // Hent aktuel token pris
+  // Fetch token prices
   const fetchTokenPrice = async () => {
     setIsLoadingPrice(true);
     try {
-      const priceInfo = await getTokenPriceUSD();
-      setTokenPrice(priceInfo.priceUSD);
-      setPriceSource(priceInfo.source);
-      
-      // Beregn payper amount med fee
-      const calculated = await calculateTokenAmount(amount);
-      setPayperAmount(calculated.tokenAmountWithFee);
-      setBaseAmount(calculated.baseAmount);
-      setFeeAmount(calculated.feeAmount);
-      
-      console.log('💰 Token price fetched:', priceInfo.priceUSD, priceInfo.source);
-      console.log('💳 Total amount:', Math.floor(calculated.tokenAmountWithFee), '$PAYPER');
-      
-      // Calculate USDC price (4x markup, no additional fee)
-      const usdcAmount = amount * 4;
+      // Calculate USDC price (2x markup, no additional fee)
+      const usdcAmount = amount * 2;
       setUsdcAmount(usdcAmount);
       console.log('💵 USDC amount:', usdcAmount.toFixed(3), 'USDC');
+      
+      // Calculate custom token amount (no markup)
+      try {
+        const { tokenAmount, tokenPrice } = await calculateCustomTokenAmount(amount);
+        setCustomTokenAmount(tokenAmount);
+        setCustomTokenPrice(tokenPrice);
+        console.log('🪙 Custom token amount:', tokenAmount.toFixed(2));
+        console.log('💰 Custom token price:', tokenPrice);
+      } catch (customError) {
+        console.error('Error fetching custom token price:', customError);
+        setCustomTokenAmount(0);
+        setCustomTokenPrice(null);
+      }
     } catch (error) {
       console.error('Error fetching token price:', error);
       // Fallback
-      setTokenPrice(0.0001);
-      const base = amount * 10;
-      const fee = base * 0.1;
-      setBaseAmount(base);
-      setFeeAmount(fee);
-      setPayperAmount(base + fee);
-      
-      // USDC is 4x the base price (no additional fee)
-      const usdcAmount = amount * 4;
+      const usdcAmount = amount * 2;
       setUsdcAmount(usdcAmount);
       
-      setPriceSource('Fallback');
+      // Custom token fallback
+      setCustomTokenAmount(0);
+      setCustomTokenPrice(null);
     } finally {
       setIsLoadingPrice(false);
       console.log('✅ Price loading complete. isLoadingPrice set to FALSE');
@@ -101,12 +92,12 @@ export default function PaymentModal({
       return;
     }
     
-    if (paymentMethod === 'payper' && payperAmount === 0) {
+    if (paymentMethod === 'usdc' && usdcAmount === 0) {
       setErrorMessage('Please wait for price to load');
       return;
     }
 
-    if (paymentMethod === 'usdc' && usdcAmount === 0) {
+    if (paymentMethod === 'custom' && customTokenAmount === 0) {
       setErrorMessage('Please wait for price to load');
       return;
     }
@@ -115,11 +106,11 @@ export default function PaymentModal({
     setErrorMessage('');
     
     try {
-      if (paymentMethod === 'payper') {
-        console.log('💳 Starting $PAYPER payment:', Math.floor(payperAmount), '$PAYPER for', amount, 'USD');
+      if (paymentMethod === 'custom') {
+        console.log('🪙 Starting custom token payment:', customTokenAmount.toFixed(2), 'tokens for', amount, 'USD');
         
-        // Send $PAYPER token payment via Solana
-        const result = await sendUSDCPayment(
+        // Send custom token payment via Solana
+        const result = await sendCustomTokenPayment(
           connection,
           publicKey,
           signTransaction,
@@ -127,7 +118,7 @@ export default function PaymentModal({
         );
 
         if (result.success && result.signature) {
-          console.log('✅ Payment successful!');
+          console.log('✅ Custom token payment successful!');
           console.log('Signature:', result.signature);
           
           setTransactionSignature(result.signature);
@@ -139,7 +130,7 @@ export default function PaymentModal({
             onClose();
           }, 2000);
         } else {
-          console.error('❌ Payment failed:', result.error);
+          console.error('❌ Custom token payment failed:', result.error);
           setPaymentStatus('error');
           setErrorMessage(result.error || 'Payment failed. Please try again.');
         }
@@ -193,21 +184,21 @@ export default function PaymentModal({
       }}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-xl z-0" />
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-xl z-0" />
 
       {/* Modal */}
       <div 
-        className={`relative z-10 w-full max-w-md md:max-w-lg bg-white rounded-3xl shadow-xl transition-all duration-600 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
+        className={`relative z-10 w-full max-w-md md:max-w-lg bg-black/90 border border-white/10 rounded-2xl shadow-2xl transition-all duration-600 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
           isOpen ? 'scale-100 opacity-100 translate-y-0' : 'scale-95 opacity-0 translate-y-10'
         }`}
       >
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-6 right-6 p-2 hover:bg-black/5 rounded-full transition-all duration-300 group disabled:opacity-30"
+          className="absolute top-6 right-6 p-2 hover:bg-white/5 rounded-full transition-all duration-300 group disabled:opacity-30 z-10"
           disabled={paymentStatus === 'processing'}
         >
-          <X className="w-5 h-5 text-black/30 group-hover:text-black/70 transition-colors duration-300" />
+          <X className="w-5 h-5 text-white/30 group-hover:text-white/70 transition-colors duration-300" />
         </button>
 
         {/* Content */}
@@ -221,34 +212,34 @@ export default function PaymentModal({
                   : 'scale-100 opacity-100'
               }`}>
                 {paymentStatus === 'processing' ? (
-                  <Loader2 className="w-10 h-10 text-black animate-spin" />
+                  <Loader2 className="w-10 h-10 text-white animate-spin" />
                 ) : paymentStatus === 'error' ? (
-                  <div className="w-10 h-10 border-2 border-red-500/30 rounded-full flex items-center justify-center">
+                  <div className="w-10 h-10 border-2 border-red-500/50 rounded-full flex items-center justify-center">
                     <X className="w-5 h-5 text-red-500" />
                   </div>
                 ) : (
-                  <Wallet className="w-10 h-10 text-black/20" />
+                  <Wallet className="w-10 h-10 text-white/40" />
                 )}
               </div>
             </div>
 
-            <h2 className="text-xl sm:text-2xl font-extralight mb-2 tracking-tight text-black">
+            <h2 className="text-xl sm:text-2xl font-bold mb-2 tracking-tight text-white">
               {paymentStatus === 'completed' 
                 ? 'Payment Complete' 
                 : paymentStatus === 'processing'
                 ? 'Processing Payment'
                 : paymentStatus === 'error'
                 ? 'Payment Failed'
-                : 'Payment'}
+                : 'Payment Required'}
             </h2>
-            <p className="text-xs text-black/40 font-light tracking-wide">
+            <p className="text-xs text-white/50 font-light tracking-wide">
               {paymentStatus === 'completed' 
                 ? 'Your generation is starting now' 
                 : paymentStatus === 'processing'
                 ? 'Confirming transaction on Solana'
                 : paymentStatus === 'error'
                 ? errorMessage
-                : 'Pay via your Solana wallet'}
+                : 'Choose your payment method'}
             </p>
           </div>
 
@@ -259,156 +250,139 @@ export default function PaymentModal({
               : 'opacity-100 translate-y-0 max-h-[600px]'
           }`}>
             {/* Payment Method Selector */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="text-center">
-                <p className="text-xs font-medium text-black/60 mb-1">Choose Payment Method</p>
-                <p className="text-[10px] text-black/40">
-                  USDC is 4x more expensive than $PAYPER
+                <p className="text-xs font-bold uppercase tracking-wider text-white/80 mb-1">Payment Method</p>
+                <p className="text-[10px] text-white/40">
+                  GEN402 offers 1:1 pricing, USDC is 2x premium
                 </p>
               </div>
-              <div className="flex gap-2 p-1 bg-black/5 rounded-xl">
+              <div className="flex gap-3 p-1.5 bg-white/5 border border-white/10 rounded-xl">
                 <button
-                  onClick={() => setPaymentMethod('payper')}
-                  disabled={isLoadingPrice || paymentStatus === 'processing' || paymentStatus === 'completed'}
-                  className={`relative flex-1 py-3 px-4 rounded-lg text-xs font-semibold uppercase tracking-[0.2em] transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                    paymentMethod === 'payper'
-                      ? 'bg-black text-white shadow-sm'
-                      : 'bg-transparent text-black/40 hover:text-black/60'
+                  onClick={() => setPaymentMethod('custom')}
+                  disabled={isLoadingPrice || paymentStatus === 'processing' || paymentStatus === 'completed' || customTokenAmount === 0}
+                  className={`relative flex-1 py-3 px-4 rounded-lg text-xs font-bold uppercase tracking-[0.15em] transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                    paymentMethod === 'custom'
+                      ? 'bg-white text-black shadow-lg'
+                      : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
                   }`}
                 >
-                  $PAYPER
-                  <span className="absolute -top-1 -right-1 bg-forge-orange text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold">
+                  GEN402
+                  <span className="absolute -top-1.5 -right-1.5 bg-green-500 text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold shadow-lg">
                     BEST
                   </span>
-                  <span className="block text-[9px] font-normal mt-1 opacity-70">Standard Price</span>
+                  <span className="block text-[9px] font-normal mt-1 opacity-70">1:1 Price</span>
                 </button>
                 <button
                   onClick={() => setPaymentMethod('usdc')}
                   disabled={isLoadingPrice || paymentStatus === 'processing' || paymentStatus === 'completed'}
-                  className={`relative flex-1 py-3 px-4 rounded-lg text-xs font-semibold uppercase tracking-[0.2em] transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                  className={`relative flex-1 py-3 px-4 rounded-lg text-xs font-bold uppercase tracking-[0.15em] transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                     paymentMethod === 'usdc'
-                      ? 'bg-black text-white shadow-sm'
-                      : 'bg-transparent text-black/40 hover:text-black/60'
+                      ? 'bg-white text-black shadow-lg'
+                      : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
                   }`}
                 >
                   USDC
-                  <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold">
-                    4x
+                  <span className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold shadow-lg">
+                    2x
                   </span>
-                  <span className="block text-[9px] font-normal mt-1 opacity-70">Premium Price</span>
+                  <span className="block text-[9px] font-normal mt-1 opacity-70">Premium</span>
                 </button>
               </div>
             </div>
 
             {/* Amount Display */}
-            <div className="py-6 border border-black/10 rounded-2xl bg-black/[0.015] text-center">
-              <div className="flex flex-col items-center justify-center gap-1">
-                <div className="text-4xl sm:text-5xl font-extralight tabular-nums text-black tracking-tight">
+            <div className="py-8 border border-white/10 rounded-xl bg-white/5 text-center backdrop-blur-sm">
+              <div className="flex flex-col items-center justify-center gap-2">
+                <div className="text-5xl sm:text-6xl font-bold tabular-nums text-white tracking-tight">
                 {isLoadingPrice ? (
-                    <Loader2 className="w-12 h-12 animate-spin text-black/20" />
-                ) : paymentMethod === 'payper' ? (
-                  Math.floor(payperAmount)
+                    <Loader2 className="w-12 h-12 animate-spin text-white/40" />
+                ) : paymentMethod === 'custom' ? (
+                  customTokenAmount.toFixed(2)
                 ) : (
                   usdcAmount.toFixed(3)
                 )}
               </div>
-                <div className="text-[10px] sm:text-[11px] text-black/30 uppercase tracking-[0.28em] font-light">
-                  {paymentMethod === 'payper' ? '$PAYPER on Solana' : 'USDC on Solana'}
+                <div className="text-[11px] sm:text-xs text-white/40 uppercase tracking-[0.25em] font-bold">
+                  {paymentMethod === 'custom' ? 'GEN402 on Solana' : 'USDC on Solana'}
                 </div>
               
               {/* Token Price Info */}
-              {!isLoadingPrice && paymentMethod === 'payper' && tokenPrice && (
-                  <div className="flex items-center justify-center gap-2 mt-1.5">
-                    <div className="text-[11px] sm:text-xs text-black/40 font-light">
-                    1 $PAYPER = ${tokenPrice.toFixed(6)} USD
-                    {priceSource && (
-                        <span className="ml-1.5 text-black/25">({priceSource})</span>
-                    )}
-                  </div>
-                  <button
-                    onClick={fetchTokenPrice}
-                    disabled={isLoadingPrice}
-                    className="p-1.5 hover:bg-black/5 rounded transition-all group"
-                    title="Refresh price"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 text-black/30 group-hover:text-black/50 transition-all ${
-                      isLoadingPrice ? 'animate-spin' : ''
-                    }`} />
-                  </button>
+              {!isLoadingPrice && paymentMethod === 'usdc' && (
+                <div className="text-xs text-white/50 font-light mt-2">
+                  1 USDC = $1.00 USD
                 </div>
               )}
-              {!isLoadingPrice && paymentMethod === 'usdc' && (
-                <div className="text-[11px] sm:text-xs text-black/40 font-light mt-1.5">
-                  1 USDC = $1.00 USD
+              {!isLoadingPrice && paymentMethod === 'custom' && customTokenPrice && (
+                <div className="text-xs text-white/50 font-light mt-2">
+                  1 GEN402 = ${customTokenPrice.toFixed(6)} USD
                 </div>
               )}
               </div>
             </div>
 
             {/* Details */}
-            <div className="space-y-1 text-sm">
-              <div className="flex justify-between items-baseline py-3">
-                <span className="text-black/30 font-light uppercase text-xs tracking-wider">Base Price</span>
-                <span className="text-black font-light">${amount.toFixed(3)}</span>
+            <div className="space-y-1 text-sm bg-white/5 border border-white/10 rounded-xl p-4">
+              <div className="flex justify-between items-baseline py-2">
+                <span className="text-white/40 font-light uppercase text-xs tracking-wider">Base Price</span>
+                <span className="text-white/80 font-medium">${amount.toFixed(3)}</span>
               </div>
               {paymentMethod === 'usdc' && (
-                <div className="flex justify-between items-baseline py-3">
-                  <span className="text-black/30 font-light uppercase text-xs tracking-wider">Premium (4x)</span>
-                  <span className="text-black font-light">${(amount * 4).toFixed(3)}</span>
+                <div className="flex justify-between items-baseline py-2">
+                  <span className="text-white/40 font-light uppercase text-xs tracking-wider">Premium (2x)</span>
+                  <span className="text-white/80 font-medium">${(amount * 2).toFixed(3)}</span>
                 </div>
               )}
-              <div className="flex justify-between items-baseline py-3 border-b border-black/5">
-                <span className="text-black/30 font-light uppercase text-xs tracking-wider">Total Payment</span>
-                <span className="text-black font-light">
-                  {paymentMethod === 'payper' 
-                    ? `${Math.floor(payperAmount)} $PAYPER` 
+              <div className="flex justify-between items-baseline py-2 border-t border-white/10 pt-3 mt-2">
+                <span className="text-white/60 font-bold uppercase text-xs tracking-wider">Total Payment</span>
+                <span className="text-white font-bold">
+                  {paymentMethod === 'custom'
+                    ? `${customTokenAmount.toFixed(2)} GEN402`
                     : `${usdcAmount.toFixed(3)} USDC`}
                 </span>
               </div>
               <button
                 onClick={() => setShowDetails((prev) => !prev)}
-                className="mt-2 w-full text-left text-[11px] uppercase tracking-[0.22em] text-black/35 hover:text-black/60 transition-colors flex items-center justify-between"
+                className="mt-3 w-full text-center text-[10px] uppercase tracking-[0.2em] text-white/40 hover:text-white/60 transition-colors flex items-center justify-center gap-2"
               >
-                More details
-                <span className="text-black/40 text-sm font-light">
-                  {showDetails ? '-' : '+'}
+                {showDetails ? 'Less details' : 'More details'}
+                <span className="text-white/50 text-xs">
+                  {showDetails ? '−' : '+'}
                 </span>
               </button>
 
               <div
                 className={`overflow-hidden transition-all duration-400 ease-out ${
-                  showDetails ? 'max-h-64 opacity-100 mt-2' : 'max-h-0 opacity-0'
+                  showDetails ? 'max-h-64 opacity-100 mt-3' : 'max-h-0 opacity-0'
                 }`}
               >
-                <div className="space-y-1 border-t border-black/5 pt-2 text-sm">
+                <div className="space-y-1 border-t border-white/10 pt-3 text-sm">
                   <div className="flex justify-between items-baseline py-2">
-                    <span className="text-black/30 font-light uppercase text-[11px] tracking-wider">Buyback (10%)</span>
-                    <span className="text-black/60 font-light">
-                      {paymentMethod === 'payper' 
-                        ? `${Math.floor(feeAmount)} $PAYPER` 
-                        : `$${(amount * 0.1).toFixed(3)} USD`}
+                    <span className="text-white/30 font-light uppercase text-[10px] tracking-wider">Buyback (10%)</span>
+                    <span className="text-white/50 font-light text-xs">
+                      $${(amount * 0.1).toFixed(3)} USD
                     </span>
                   </div>
                   <div className="flex justify-between items-baseline py-2">
-                    <span className="text-black/30 font-light uppercase text-[11px] tracking-wider">We Receive</span>
-                    <span className="text-black/80 font-light">
-                      {paymentMethod === 'payper' 
-                        ? `${Math.floor(baseAmount)} $PAYPER` 
+                    <span className="text-white/30 font-light uppercase text-[10px] tracking-wider">We Receive</span>
+                    <span className="text-white/70 font-medium text-xs">
+                      {paymentMethod === 'custom'
+                        ? `${customTokenAmount.toFixed(2)} GEN402`
                         : `${usdcAmount.toFixed(3)} USDC`}
                     </span>
                   </div>
                   <div className="flex justify-between items-baseline py-2">
-                    <span className="text-black/30 font-light uppercase text-[11px] tracking-wider">Model</span>
-                <span className="text-black font-light">{modelName}</span>
+                    <span className="text-white/30 font-light uppercase text-[10px] tracking-wider">Model</span>
+                <span className="text-white/70 font-medium text-xs">{modelName}</span>
               </div>
                   <div className="flex justify-between items-baseline py-2">
-                    <span className="text-black/30 font-light uppercase text-[11px] tracking-wider">Network</span>
-                <span className="text-black font-light">Solana Mainnet</span>
+                    <span className="text-white/30 font-light uppercase text-[10px] tracking-wider">Network</span>
+                <span className="text-white/70 font-medium text-xs">Solana Mainnet</span>
               </div>
               {connected && publicKey && (
                     <div className="flex justify-between items-baseline py-2">
-                      <span className="text-black/30 font-light uppercase text-[11px] tracking-wider">Wallet</span>
-                      <span className="text-black/40 font-mono text-[11px] tracking-tight">
+                      <span className="text-white/30 font-light uppercase text-[10px] tracking-wider">Wallet</span>
+                      <span className="text-white/40 font-mono text-[10px] tracking-tight">
                     {publicKey.toBase58().substring(0, 8)}...{publicKey.toBase58().substring(publicKey.toBase58().length - 6)}
                   </span>
                 </div>
@@ -421,11 +395,11 @@ export default function PaymentModal({
           {/* Success Message - Slide in when completed */}
           <div className={`transition-all duration-700 ${
             paymentStatus === 'completed' 
-              ? 'opacity-100 translate-y-0 max-h-36 mb-8' 
+              ? 'opacity-100 translate-y-0 max-h-36 mb-6' 
               : 'opacity-0 translate-y-6 max-h-0 overflow-hidden pointer-events-none'
           }`}>
-            <div className="py-6 border-t border-b border-black/10 text-center space-y-3">
-              <p className="text-sm text-black/60 font-light">
+            <div className="py-6 border border-white/10 bg-white/5 rounded-xl text-center space-y-3">
+              <p className="text-sm text-white/70 font-medium">
                 Generating your content...
               </p>
               {transactionSignature && (
@@ -433,9 +407,9 @@ export default function PaymentModal({
                   href={`https://solscan.io/tx/${transactionSignature}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-block text-xs text-black/60 hover:text-black font-mono transition-colors underline"
+                  className="inline-block text-xs text-white/50 hover:text-white/80 font-mono transition-colors underline"
                 >
-                  View transaction on Solscan →
+                  View on Solscan →
                 </a>
               )}
             </div>
@@ -443,17 +417,17 @@ export default function PaymentModal({
 
           {/* Error Message */}
           {paymentStatus === 'error' && (
-            <div className="mb-5 p-4 bg-red-50 border border-red-100 rounded-xl space-y-3">
+            <div className="mb-5 p-4 bg-red-500/10 border border-red-500/30 rounded-xl space-y-3">
               <div>
-                <p className="font-semibold text-red-700 text-xs">Payment Failed</p>
-                <p className="text-xs text-red-600 mt-1">{errorMessage}</p>
+                <p className="font-bold text-red-400 text-xs uppercase tracking-wider">Payment Failed</p>
+                <p className="text-xs text-red-300/80 mt-2">{errorMessage}</p>
               </div>
               <button
                 onClick={() => {
                   setPaymentStatus('pending');
                   setErrorMessage('');
                 }}
-                className="w-full py-2 px-3 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs font-medium transition"
+                className="w-full py-2.5 px-3 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg text-xs font-bold uppercase tracking-wider transition"
               >
                 Try Again
               </button>
@@ -462,41 +436,35 @@ export default function PaymentModal({
 
           {/* Action Button */}
           {!connected ? (
-            <div className="text-center py-8 border-t border-black/10">
-              <p className="text-sm text-black/40 mb-4">You need to connect your wallet first</p>
-              <p className="text-xs text-black/30">Use the "Connect Wallet" button in the header</p>
+            <div className="text-center py-8 border-t border-white/10">
+              <p className="text-sm text-white/60 mb-4 font-medium">Connect your wallet to proceed</p>
+              <p className="text-xs text-white/40">Use the "Connect Wallet" button in the header</p>
             </div>
           ) : (
             <button
               onClick={(e) => {
-                console.log('🖱️ CLICKED!');
-                console.log('disabled?', e.currentTarget.disabled);
-                console.log('isLoadingPrice?', isLoadingPrice);
-                console.log('paymentStatus?', paymentStatus);
-                console.log('payperAmount?', payperAmount);
                 if (!e.currentTarget.disabled) {
                   handlePayment();
                 }
               }}
-              onMouseEnter={() => console.log('🖱️ Mouse enter')}
               disabled={isLoadingPrice || paymentStatus === 'processing' || paymentStatus === 'completed'}
-              className={`relative z-10 w-full px-7 py-3.5 text-[11px] sm:text-sm font-light tracking-[0.18em] uppercase
-                       flex items-center justify-center gap-4
-                       transition-all duration-500 ease-out
+              className={`relative z-10 w-full px-7 py-4 text-xs sm:text-sm font-bold tracking-[0.15em] uppercase rounded-xl
+                       flex items-center justify-center gap-3
+                       transition-all duration-300 ease-out
                        pointer-events-auto
                        ${paymentStatus === 'completed'
-                         ? 'bg-forge-orange text-white cursor-default opacity-90'
+                         ? 'bg-green-500 text-white cursor-default'
                          : paymentStatus === 'processing' || isLoadingPrice
-                         ? 'bg-black text-white cursor-wait opacity-80'
+                         ? 'bg-white/10 text-white/50 cursor-wait'
                          : paymentStatus === 'error'
-                         ? 'bg-red-600 text-white hover:bg-red-700 active:scale-[0.98]'
-                         : 'bg-black text-white hover:bg-black/80 active:scale-[0.98] cursor-pointer'
+                         ? 'bg-red-500 text-white hover:bg-red-600 active:scale-[0.98]'
+                         : 'bg-white text-black hover:bg-white/90 active:scale-[0.98] cursor-pointer shadow-lg'
                        }`}
             >
               {isLoadingPrice ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Loading Price...</span>
+                  <span>Loading...</span>
                 </>
               ) : paymentStatus === 'processing' ? (
                 <>
@@ -504,13 +472,13 @@ export default function PaymentModal({
                   <span>Processing</span>
                 </>
               ) : paymentStatus === 'completed' ? (
-                <span>Completed</span>
+                <span>✓ Completed</span>
               ) : paymentStatus === 'error' ? (
                 <span>Try Again</span>
               ) : (
                 <span>
-                  {paymentMethod === 'payper' 
-                    ? `Pay ${Math.floor(payperAmount)} $PAYPER` 
+                  {paymentMethod === 'custom'
+                    ? `Pay ${customTokenAmount.toFixed(2)} GEN402`
                     : `Pay ${usdcAmount.toFixed(3)} USDC`}
                 </span>
               )}
@@ -518,10 +486,10 @@ export default function PaymentModal({
           )}
 
           {/* Footer */}
-          <div className={`mt-6 pt-6 border-t border-black/5 transition-opacity duration-500 ${
+          <div className={`mt-6 pt-6 border-t border-white/10 transition-opacity duration-500 ${
             paymentStatus === 'pending' || paymentStatus === 'error' ? 'opacity-100' : 'opacity-0'
           }`}>
-            <p className="text-[9px] text-center text-black/25 uppercase tracking-[0.28em] font-light">
+            <p className="text-[9px] text-center text-white/30 uppercase tracking-[0.25em] font-bold">
               Secured by Solana Network
             </p>
           </div>
