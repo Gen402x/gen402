@@ -1,22 +1,30 @@
-# Gen402 - Professional AI Generation Platform
+# Gen402 - HTTP 402 Payment Protocol for AI Generation
 
-Create stunning images and videos with industry-leading AI models powered by blockchain technology.
+Professional AI generation platform implementing the HTTP 402 Payment Required protocol with blockchain verification.
 
 ![Gen402](https://img.shields.io/badge/Gen-402-orange)
+![HTTP 402](https://img.shields.io/badge/Protocol-HTTP%20402-blue)
 ![Solana](https://img.shields.io/badge/Blockchain-Solana-purple)
-![Next.js](https://img.shields.io/badge/Framework-Next.js-black)
 
-## Overview
+## What is HTTP 402?
 
-Gen402 provides direct access to premium AI models including Sora 2, Veo 3.1, GPT-Image, Ideogram, and Qwen through blockchain-verified payments on Solana mainnet.
+HTTP 402 Payment Required is a reserved HTTP status code intended for digital payment systems. Gen402 implements this protocol to provide seamless pay-per-use access to premium AI models.
 
-### Core Features
+### How We Use HTTP 402
 
-- **Professional AI Studio** - Direct access to 5+ leading AI generation models
-- **Blockchain Verified** - All payments confirmed on Solana mainnet
-- **Pay-Per-Use Model** - No subscriptions, pay only for generated content
-- **Instant Processing** - Start generation immediately after payment confirmation
-- **Transparent Pricing** - Clear pricing with on-chain payment verification
+Gen402 uses HTTP 402 as a protocol layer between users and AI generation services:
+
+1. **Request** → User requests AI generation (image/video)
+2. **402 Response** → Server responds with payment requirement and details
+3. **Payment** → User completes blockchain payment via Solana wallet
+4. **Verification** → Server verifies on-chain transaction
+5. **Fulfillment** → Generation proceeds automatically after payment confirmation
+
+This creates a trustless, transparent payment flow where:
+- No subscriptions or upfront costs required
+- Pay only for what you generate
+- All payments verified on Solana blockchain
+- Instant processing after payment confirmation
 
 ## AI Models
 
@@ -76,32 +84,84 @@ See `env.example` for complete configuration options and pricing setup.
 
 ## Architecture
 
-### Frontend
-- Next.js 14 with App Router
-- React 18 with TypeScript
-- Tailwind CSS with custom design system
-- Solana Wallet Adapter
+Gen402 implements HTTP 402 across three layers:
 
-### Blockchain
-- Solana Web3.js for blockchain interaction
-- SPL Token for payment handling
-- Helius RPC for reliable network access
-- On-chain payment verification
+### 1. Protocol Layer (HTTP 402)
+```
+Client Request → 402 Response → Payment → Verification → Fulfillment
+```
+- Returns 402 status with payment details
+- Includes amount, currency (USDC), and recipient wallet
+- Client handles payment via blockchain
+- Server verifies on-chain before proceeding
 
-### Backend
-- Next.js API Routes (serverless)
-- Supabase for database and storage
-- HTTP 402 protocol implementation
-- AI provider integrations
+### 2. Payment Layer (Solana Blockchain)
+- **Solana Web3.js** - Blockchain interaction
+- **SPL Token (USDC)** - Payment token
+- **Helius RPC** - Fast, reliable network access
+- **On-chain verification** - Trustless payment confirmation
 
-## Payment Flow
+### 3. Application Layer
+- **Frontend:** Next.js 14, React 18, TypeScript, Tailwind CSS
+- **Backend:** Serverless API routes with Supabase
+- **AI Integration:** OpenAI, Google AI, Ideogram, Alibaba Cloud
 
-1. User selects AI model and enters prompt
-2. Platform calculates generation cost
-3. User approves transaction in Solana wallet
-4. Payment verified on Solana blockchain
-5. Generation starts automatically
-6. Results delivered via chat interface
+## HTTP 402 Payment Flow
+
+### Step-by-Step Implementation
+
+**1. User Request**
+```
+POST /api/generate
+{
+  "model": "veo-3.1",
+  "prompt": "create amazing video",
+  "options": { "aspectRatio": "16:9" }
+}
+```
+
+**2. Server Returns 402 Payment Required**
+```json
+{
+  "status": 402,
+  "message": "Payment Required",
+  "payment": {
+    "amount": 1.296,
+    "currency": "USDC",
+    "model": "Veo 3.1",
+    "recipient": "wallet_address"
+  }
+}
+```
+
+**3. Client Initiates Blockchain Payment**
+- User approves transaction in Solana wallet
+- USDC transferred on-chain to platform wallet
+- Transaction signature returned
+
+**4. Server Verifies Payment**
+- Checks transaction on Solana blockchain
+- Validates amount, recipient, and sender
+- Confirms transaction finality
+
+**5. Generation Proceeds**
+- AI generation starts immediately after verification
+- Real-time progress updates via chat interface
+- Results delivered when complete
+
+### Why This Matters
+
+Traditional payment systems require:
+- Credit card processing (2-3% fees)
+- Monthly subscriptions
+- KYC/identity verification
+- Chargebacks and disputes
+
+HTTP 402 + Blockchain enables:
+- Direct peer-to-peer payments (minimal fees)
+- True pay-per-use model
+- Wallet-based authentication only
+- Irreversible, trustless transactions
 
 ## Project Structure
 
@@ -127,26 +187,45 @@ gen402/
     └── index.ts             # TypeScript definitions
 ```
 
-## Features
+## Technical Implementation
 
-### Chat Interface
-- Persistent conversation history
-- Model selection per chat
-- Real-time progress tracking
-- Transaction history with Solscan links
+### Payment Verification
+```typescript
+// Server-side payment verification
+const transaction = await connection.getTransaction(signature);
+const transfer = transaction.meta.postTokenBalances[0];
 
-### Payment System
-- Dual payment options (Token/USDC)
-- On-chain verification
-- Full transaction transparency
-- Automated payment processing
+if (transfer.amount >= requiredAmount && 
+    transfer.owner === platformWallet) {
+  // Payment confirmed - proceed with generation
+  return { verified: true, amount: transfer.amount };
+}
+```
 
-### Generation Options
-- Multiple aspect ratios
-- Variable video length (5-15s)
-- Image variants (up to 4x)
-- Style presets per model
-- Advanced parameter control
+### Client-Side Payment
+```typescript
+// User initiates USDC payment
+const signature = await sendUSDCPayment(
+  connection,
+  publicKey,
+  signTransaction,
+  recipientWallet,
+  amount
+);
+
+// Server verifies and processes
+await fetch('/api/generate', {
+  method: 'POST',
+  body: JSON.stringify({ signature, model, prompt })
+});
+```
+
+### Features
+- **On-chain verification only** - No database payment records needed
+- **Instant confirmation** - 1-3 second payment verification on Solana
+- **Full transparency** - All transactions viewable on Solscan
+- **No chargebacks** - Blockchain transactions are final
+- **Wallet authentication** - No passwords or user accounts required
 
 ## Development
 
@@ -182,23 +261,27 @@ npm run lint
 
 ## Technology Stack
 
-**Core:**
-- Next.js 14
-- React 18
-- TypeScript
-- Tailwind CSS
+**HTTP 402 Implementation:**
+- Protocol-first architecture
+- Blockchain payment verification
+- No traditional payment processing
+- Trustless transaction system
 
-**Blockchain:**
-- Solana Web3.js
-- SPL Token Standard
-- Wallet Adapter
-- Helius RPC
+**Blockchain (Solana):**
+- Solana Web3.js - Transaction handling
+- SPL Token (USDC) - Payment currency
+- Wallet Adapter - User authentication
+- Helius RPC - Network access
 
-**AI:**
-- OpenAI API
-- Google AI
-- Ideogram API
-- Alibaba Cloud
+**Application:**
+- Next.js 14 - Full-stack framework
+- React 18 + TypeScript - Frontend
+- Tailwind CSS - Styling
+- Supabase - Database & storage
+
+**AI Models:**
+- Sora 2, Veo 3.1 (video)
+- GPT-Image, Ideogram, Qwen (image)
 
 ## Contributing
 
@@ -218,13 +301,20 @@ MIT License - see LICENSE file
 - **X/Twitter:** https://x.com/gen402x
 - **Dashboard:** https://gen402x.dev/dashboard
 
-## Support
+## About HTTP 402
 
-- Network Status: 99.9% uptime on Solana mainnet
-- Payment verification: 1-3 seconds
-- All transactions visible on Solscan
+The HTTP 402 Payment Required status code was reserved in the original HTTP specification (1997) for future digital payment systems. While never officially standardized, Gen402 implements this protocol as intended:
+
+- **RFC 9110 Section 15.5.3:** "The 402 (Payment Required) status code is reserved for future use."
+- **Original Intent:** Enable direct payment protocols without traditional payment processing
+- **Gen402 Implementation:** Blockchain-verified payments using USDC on Solana
+
+### Protocol Resources
+- [HTTP 402 Specification](https://httpwg.org/specs/rfc9110.html#status.402)
+- [Solana Documentation](https://docs.solana.com)
+- [USDC on Solana](https://www.circle.com/en/usdc)
 
 ---
 
-Built with Next.js, Solana, and AI  
-Gen402 © 2025
+**Gen402** - Implementing HTTP 402 Payment Protocol with Blockchain  
+© 2025 Gen402. Built with Next.js, Solana, and AI
