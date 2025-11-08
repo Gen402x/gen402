@@ -12,9 +12,9 @@ import {
 } from '@solana/spl-token';
 import bs58 from 'bs58';
 
-// Payment token (PAYPER) mint address
+// Custom token coming soon - using USDC for now
 export const PAYMENT_TOKEN_MINT_ADDRESS = new PublicKey(
-  '4BwTM7JvCXnMHPoxfPBoNjxYSbQpVQUMPtK5KNGppump'
+  'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' // USDC
 );
 
 // USDC mint address (Solana mainnet)

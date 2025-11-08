@@ -14,8 +14,12 @@ import {
 // USDC Mint Address (Solana Mainnet)
 export const USDC_MINT_ADDRESS = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 
-// Payment wallet address - USDC payments go here
-export const PAYMENT_WALLET_ADDRESS = new PublicKey('BXm4a7VzW3GWH2MkUqFTc5uM3XrQDvVbYA3KbXoUvgez');
+// Get payment wallet address from environment
+const paymentWalletAddress = process.env.NEXT_PUBLIC_PAYMENT_WALLET_ADDRESS;
+if (!paymentWalletAddress) {
+  throw new Error('NEXT_PUBLIC_PAYMENT_WALLET_ADDRESS is not configured');
+}
+export const PAYMENT_WALLET_ADDRESS = new PublicKey(paymentWalletAddress);
 
 // USDC decimals
 export const USDC_DECIMALS = 6;

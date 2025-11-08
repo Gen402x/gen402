@@ -25,8 +25,8 @@ export default function ResultDisplay({
     const downloadUrl = imageUrl || url;
     const timestamp = Date.now();
     const fileName = index !== undefined 
-      ? `gateway402x-image-${index + 1}-${timestamp}.png`
-      : `gateway402x-${type}-${timestamp}.${type === 'image' ? 'png' : 'mp4'}`;
+      ? `ai-studio-image-${index + 1}-${timestamp}.png`
+      : `ai-studio-${type}-${timestamp}.${type === 'image' ? 'png' : 'mp4'}`;
 
     try {
       // Since images are now from our Supabase, direct fetch should work

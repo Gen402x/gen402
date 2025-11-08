@@ -10,7 +10,7 @@ export default function DashboardPage() {
       <InteractiveBackground />
       <div className="relative z-10 min-h-screen flex flex-col">
         <Header />
-        <main className="flex-1 pt-24">
+        <main className="flex-1 pt-20">
           <ChatDashboard />
         </main>
       </div>

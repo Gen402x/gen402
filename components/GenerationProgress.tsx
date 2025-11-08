@@ -62,7 +62,7 @@ export default function GenerationProgress({
         
         <div className="h-1 bg-white/10 overflow-hidden rounded-full">
           <div
-            className="h-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-500 ease-out"
+            className="h-full bg-gradient-to-r from-forge-orange to-forge-amber transition-all duration-500 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>

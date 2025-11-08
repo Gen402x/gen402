@@ -277,7 +277,7 @@ export default function PaymentModal({
                   }`}
                 >
                   $PAYPER
-                  <span className="absolute -top-1 -right-1 bg-green-500 text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold">
+                  <span className="absolute -top-1 -right-1 bg-forge-orange text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold">
                     BEST
                   </span>
                   <span className="block text-[9px] font-normal mt-1 opacity-70">Standard Price</span>
@@ -485,7 +485,7 @@ export default function PaymentModal({
                        transition-all duration-500 ease-out
                        pointer-events-auto
                        ${paymentStatus === 'completed'
-                         ? 'bg-green-600 text-white cursor-default opacity-90'
+                         ? 'bg-forge-orange text-white cursor-default opacity-90'
                          : paymentStatus === 'processing' || isLoadingPrice
                          ? 'bg-black text-white cursor-wait opacity-80'
                          : paymentStatus === 'error'

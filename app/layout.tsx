@@ -10,12 +10,16 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: 'Gateway402x - Premium AI Models via HTTP 402',
-  description: 'Access premium AI models through HTTP 402 protocol. Gateway to Sora, Veo, GPT-Image, and more with blockchain payments.',
+  title: 'Gen402 - Professional AI Generation Platform',
+  description: 'Create stunning images and videos with leading AI models. Professional-grade AI generation powered by blockchain technology.',
   viewport: {
     width: 'device-width',
     initialScale: 1,
     maximumScale: 5,
+  },
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
   },
 };
 

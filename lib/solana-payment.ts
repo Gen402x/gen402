@@ -17,13 +17,17 @@ import { calculateTokenAmount, getTokenPriceUSD } from './token-price';
 // Re-export for convenience
 export { getTokenPriceUSD, calculateTokenAmount } from './token-price';
 
-// Custom Token Mint Address - your token!
-export const PAYMENT_TOKEN_MINT_ADDRESS = new PublicKey('4BwTM7JvCXnMHPoxfPBoNjxYSbQpVQUMPtK5KNGppump');
+// Custom token payment coming soon - using USDC only for now
+export const PAYMENT_TOKEN_MINT_ADDRESS = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'); // USDC
 
-// Payment wallet address - All token payments go here
-export const PAYMENT_WALLET_ADDRESS = new PublicKey('BXm4a7VzW3GWH2MkUqFTc5uM3XrQDvVbYA3KbXoUvgez');
+// Get payment wallet address from environment
+const paymentWalletAddress = process.env.NEXT_PUBLIC_PAYMENT_WALLET_ADDRESS;
+if (!paymentWalletAddress) {
+  throw new Error('NEXT_PUBLIC_PAYMENT_WALLET_ADDRESS is not configured');
+}
+export const PAYMENT_WALLET_ADDRESS = new PublicKey(paymentWalletAddress);
 
-// Token decimals (check your token's actual decimals)
+// Token decimals (USDC has 6 decimals)
 export const TOKEN_DECIMALS = 6;
 
 export interface SolanaPaymentRequest {
@@ -39,7 +43,7 @@ export interface SolanaPaymentResult {
 }
 
 /**
- * Creates and sends a $PAYPER token payment transaction on Solana
+ * Creates and sends a USDC payment transaction on Solana
  * Automatically fetches the current token price and calculates correct amount
  */
 export async function sendUSDCPayment(
@@ -49,14 +53,14 @@ export async function sendUSDCPayment(
   usdAmount: number
 ): Promise<SolanaPaymentResult> {
   try {
-    console.log('🔄 Starting $PAYPER payment...');
+    console.log('🔄 Starting USDC payment...');
     console.log('💵 USD amount:', usdAmount);
     
     // Get current token price and calculate amount
     const { tokenAmount: payperAmount, tokenPrice, source } = await calculateTokenAmount(usdAmount);
     
     console.log('💰 Token price:', `$${tokenPrice}`, `(source: ${source})`);
-    console.log('💰 $PAYPER amount:', Math.floor(payperAmount), '$PAYPER');
+    console.log('💰 USDC amount:', payperAmount.toFixed(3), 'USDC');
     console.log('👛 From:', payerPublicKey.toBase58());
     console.log('🎯 To:', PAYMENT_WALLET_ADDRESS.toBase58());
 
@@ -64,7 +68,7 @@ export async function sendUSDCPayment(
     const tokenAmountRaw = Math.floor(payperAmount * Math.pow(10, TOKEN_DECIMALS));
     
     console.log('🔢 Raw token amount (u64):', tokenAmountRaw);
-    console.log('🔢 Calculation:', `${Math.floor(payperAmount)} × 10^${TOKEN_DECIMALS} = ${tokenAmountRaw}`);
+    console.log('🔢 Calculation:', `${payperAmount.toFixed(3)} × 10^${TOKEN_DECIMALS} = ${tokenAmountRaw}`);
     
     // Find associated token accounts
     const fromTokenAccount = await getAssociatedTokenAddress(
@@ -89,11 +93,11 @@ export async function sendUSDCPayment(
     // Check if user's token account exists
     const fromAccountInfo = await connection.getAccountInfo(fromTokenAccount);
     if (!fromAccountInfo) {
-      console.log('⚠️  User $PAYPER account does not exist!');
+      console.log('⚠️  User USDC account does not exist!');
       return {
         success: false,
         signature: '',
-        error: 'You do not have $PAYPER token. Please add $PAYPER to your wallet first.',
+        error: 'You do not have USDC. Please add USDC to your wallet first.',
       };
     }
 
@@ -102,15 +106,15 @@ export async function sendUSDCPayment(
       const balanceInfo = await connection.getTokenAccountBalance(fromTokenAccount);
       const currentBalance = parseFloat(balanceInfo.value.amount) / Math.pow(10, TOKEN_DECIMALS);
       
-      console.log('💵 Current $PAYPER balance:', Math.floor(currentBalance));
-      console.log('💳 Required amount:', Math.floor(payperAmount), '$PAYPER');
+      console.log('💵 Current USDC balance:', currentBalance.toFixed(3));
+      console.log('💳 Required amount:', payperAmount.toFixed(3), 'USDC');
       
       if (currentBalance < payperAmount) {
-        console.log('⚠️  Insufficient $PAYPER!');
+        console.log('⚠️  Insufficient USDC!');
         return {
           success: false,
           signature: '',
-          error: `Insufficient $PAYPER! You have ${Math.floor(currentBalance)} $PAYPER but need ${Math.floor(payperAmount)} $PAYPER.`,
+          error: `Insufficient USDC! You have $${currentBalance.toFixed(3)} USDC but need $${payperAmount.toFixed(3)} USDC.`,
         };
       }
     } catch (balanceError) {
@@ -118,7 +122,7 @@ export async function sendUSDCPayment(
       return {
         success: false,
         signature: '',
-        error: 'Could not verify your $PAYPER balance. Please ensure you have $PAYPER in your wallet.',
+        error: 'Could not verify your USDC balance. Please ensure you have USDC in your wallet.',
       };
     }
 
@@ -130,7 +134,7 @@ export async function sendUSDCPayment(
     
     // If recipient's token account doesn't exist, create it first
     if (!toAccountInfo) {
-      console.log('📝 Creating recipient $PAYPER account...');
+      console.log('📝 Creating recipient USDC account...');
       transaction.add(
         createAssociatedTokenAccountInstruction(
           payerPublicKey, // payer
@@ -281,7 +285,7 @@ export async function verifyUSDCPayment(
 }
 
 /**
- * Check $PAYPER token balance for a wallet
+ * Check USDC balance for a wallet
  */
 export async function getUSDCBalance(
   connection: Connection,
@@ -298,10 +302,10 @@ export async function getUSDCBalance(
 
     const balance = await connection.getTokenAccountBalance(tokenAccount);
     
-    // Return balance in $PAYPER tokens (9 decimals)
+    // Return balance in USDC (6 decimals)
     return parseFloat(balance.value.amount) / Math.pow(10, TOKEN_DECIMALS);
   } catch (error) {
-    console.error('Error getting $PAYPER balance:', error);
+    console.error('Error getting USDC balance:', error);
     return 0;
   }
 }

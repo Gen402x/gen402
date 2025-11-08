@@ -111,7 +111,6 @@ export default function ChatDashboard() {
   const [qwenGuidanceScale, setQwenGuidanceScale] = useState(2.5);
   const [qwenAcceleration, setQwenAcceleration] = useState<'none' | 'regular' | 'high'>('none');
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [paymentMethodByGenId, setPaymentMethodByGenId] = useState<Map<string, 'payper' | 'usdc'>>(new Map());
 
   const paymentStatusByGenerationId = useMemo(() => {
     const statusMap = new Map<string, string>();
@@ -622,7 +621,7 @@ export default function ChatDashboard() {
             chatId,
             options,
             userWallet: walletAddress,
-            paymentMethod: 'payper',
+            paymentMethod: 'usdc',
           });
         } else {
           setGenerationProgress((prev) => ({ ...prev, status: 'processing' }));
@@ -701,15 +700,11 @@ export default function ChatDashboard() {
       setIsGenerating(true);
       setGenerationProgress(defaultGenerationProgress);
 
-      // Get payment method that was used for this generation
-      const paymentMethod = metadata.generationId 
-        ? paymentMethodByGenId.get(metadata.generationId) || 'payper'
-        : 'payper';
+      // Always use USDC payment
+      const amountPaidUSD = metadata.amountUSD;
 
-      const amountPaidUSD = paymentMethod === 'usdc'
-        ? metadata.amountUSD * 4
-        : metadata.amountUSD;
-
+      console.log('📤 Sending to API - Amount:', amountPaidUSD, 'USDC');
+      
       const response = await axios.post('/api/generate', {
         model: model.id,
         prompt: metadata.prompt,
@@ -717,7 +712,7 @@ export default function ChatDashboard() {
         options: metadata.options || {},
         paymentSignature: signature,
         userWallet: walletAddress,
-        paymentMethod: paymentMethod,
+        paymentMethod: 'usdc',
         amountPaidUSD,
       });
 
@@ -732,7 +727,7 @@ export default function ChatDashboard() {
             chatId: metadata.chatId,
             options: metadata.options,
             userWallet: walletAddress,
-            paymentMethod,
+            paymentMethod: 'usdc',
             amountPaidUSD,
           });
         } else {
@@ -760,7 +755,7 @@ export default function ChatDashboard() {
     } finally {
       setIsGenerating(false);
     }
-  }, [addStatusMessage, handleGenerationSuccess, startPolling, walletAddress, paymentMethodByGenId]);
+  }, [addStatusMessage, handleGenerationSuccess, startPolling, walletAddress]);
 
   const handlePaymentAction = useCallback(async (metadata: PaymentRequestMetadata) => {
     if (!connected || !publicKey) {
@@ -778,16 +773,11 @@ export default function ChatDashboard() {
       return;
     }
 
-    // Get selected payment method for this generation
-    const selectedMethod = paymentMethodByGenId.get(metadata.generationId) || 'payper';
-    const baseAmount = metadata.amountUSD;
-    const actualAmount = selectedMethod === 'usdc' ? baseAmount * 4 : baseAmount;
+    // Always use USDC payment
+    const actualAmount = metadata.amountUSD;
 
     console.log('🔍 Generation ID:', metadata.generationId);
-    console.log('🔍 Payment Method Map:', Array.from(paymentMethodByGenId.entries()));
-    console.log('💳 Payment Method Selected:', selectedMethod);
-    console.log('💰 Base Amount:', baseAmount, 'USD');
-    console.log('💵 Actual Amount to Pay:', actualAmount, 'USD');
+    console.log('💵 Payment Amount:', actualAmount, 'USDC');
 
     setPayingGenerationId(metadata.generationId);
 
@@ -798,20 +788,14 @@ export default function ChatDashboard() {
         status: 'processing',
         generationId: metadata.generationId,
         amountUSD: actualAmount,
-        paymentMethod: selectedMethod,
+        paymentMethod: 'usdc',
       },
     });
 
     try {
-      let result;
-      if (selectedMethod === 'usdc') {
-        // Use USDC payment
-        const { sendDirectUSDCPayment } = await import('@/lib/usdc-payment');
-        result = await sendDirectUSDCPayment(connection, publicKey, signTransaction, actualAmount);
-      } else {
-        // Use PAYPER payment
-        result = await sendUSDCPayment(connection, publicKey, signTransaction, baseAmount);
-      }
+      // Use USDC payment
+      const { sendDirectUSDCPayment } = await import('@/lib/usdc-payment');
+      const result = await sendDirectUSDCPayment(connection, publicKey, signTransaction, actualAmount);
 
       if (!result.success || !result.signature) {
         await appendMessage(metadata.chatId, {
@@ -861,7 +845,7 @@ export default function ChatDashboard() {
     } finally {
       setPayingGenerationId(null);
     }
-  }, [appendMessage, completeGenerationAfterPayment, connection, connected, publicKey, signTransaction, isGenerating, paymentMethodByGenId]);
+  }, [appendMessage, completeGenerationAfterPayment, connection, connected, publicKey, signTransaction, isGenerating, addStatusMessage]);
 
   const handleSubmit = useCallback(async () => {
     if (!prompt.trim()) return;
@@ -961,7 +945,7 @@ export default function ChatDashboard() {
               href={`https://solscan.io/tx/${metadata.transactionSignature}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition"
+              className="mt-3 inline-flex items-center gap-1 text-xs text-forge-orange hover:text-forge-amber transition"
             >
               View on Solscan
               <ArrowUpRight className="w-3 h-3" />
@@ -974,17 +958,6 @@ export default function ChatDashboard() {
     if (metadata.type === 'paymentRequest') {
       const request = metadata as PaymentRequestMetadata;
       
-      const selectedPaymentMethod = paymentMethodByGenId.get(request.generationId) || 'usdc';
-      const handlePaymentMethodChange = (method: 'payper' | 'usdc') => {
-        console.log('🔄 Changing payment method to:', method, 'for gen ID:', request.generationId);
-        console.log('🔍 Before update - Map contents:', Array.from(paymentMethodByGenId.entries()));
-        setPaymentMethodByGenId(prev => {
-          const newMap = new Map(prev);
-          newMap.set(request.generationId, method);
-          console.log('✅ After update - Map contents:', Array.from(newMap.entries()));
-          return newMap;
-        });
-      };
       const paying = payingGenerationId === request.generationId || isGenerating;
       const paymentStatus = paymentStatusByGenerationId.get(request.generationId);
       const isCompleted = paymentStatus === 'completed';
@@ -992,12 +965,9 @@ export default function ChatDashboard() {
       const isErrored = paymentStatus === 'error';
       const isDisabled = isCompleted || isProcessingStatus || paying || isGenerating;
       
-      // Calculate amounts for both methods
+      // Calculate USDC amount (always use USDC)
       const baseAmount = request.amountUSD ?? 0;
-      const payperDisplayAmount = baseAmount;
-      const usdcDisplayAmount = baseAmount * 4;
-      
-      const displayAmount = selectedPaymentMethod === 'payper' ? payperDisplayAmount : usdcDisplayAmount;
+      const usdcDisplayAmount = baseAmount;
       
       const buttonLabel = isCompleted
         ? 'Payment successful'
@@ -1005,9 +975,9 @@ export default function ChatDashboard() {
         ? 'Processing…'
         : isErrored
         ? 'Try again'
-        : `Pay ${displayAmount.toFixed(3)} USD (${selectedPaymentMethod === 'payper' ? '$PAYPER' : 'USDC'})`;
+        : `Pay $${usdcDisplayAmount.toFixed(3)} USDC`;
       const buttonClass = isCompleted
-        ? 'bg-green-500 text-white cursor-default'
+        ? 'bg-forge-orange text-white cursor-default'
         : isProcessingStatus || paying || isGenerating
         ? 'bg-white/10 text-white/30 cursor-not-allowed'
         : 'bg-white text-black hover:bg-white/90 font-bold';
@@ -1065,47 +1035,11 @@ export default function ChatDashboard() {
             </div>
           </div>
 
-          {/* Payment Method Selection */}
+          {/* Payment with USDC */}
           {!isCompleted && (
-            <div className="space-y-3">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-white/40 text-center">
-                Choose Payment Method
-              </p>
-              <div className="flex gap-2 p-1 bg-white/5 rounded-lg border border-white/10">
-                <button
-                  type="button"
-                  disabled={true}
-                  className="relative flex-1 py-2.5 px-3 rounded-md text-[10px] font-bold uppercase tracking-wider transition bg-transparent text-white/30 cursor-not-allowed"
-                >
-                  $GATEWAY
-                  <span className="block text-[8px] font-normal mt-0.5 opacity-80">
-                    Coming Soon
-                  </span>
-                  <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-[7px] px-1.5 py-0.5 rounded-full font-bold">
-                    1x
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handlePaymentMethodChange('usdc')}
-                  disabled={isDisabled}
-                  className={`relative flex-1 py-2.5 px-3 rounded-md text-[10px] font-bold uppercase tracking-wider transition ${
-                    selectedPaymentMethod === 'usdc'
-                      ? 'bg-white text-black'
-                      : 'bg-transparent text-white/40 hover:text-white/70'
-                  } disabled:opacity-50`}
-                >
-                  USDC
-                  <span className="block text-[8px] font-normal mt-0.5 opacity-80">
-                    ${usdcDisplayAmount.toFixed(3)}
-                  </span>
-                  <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[7px] px-1.5 py-0.5 rounded-full font-bold">
-                    4x
-                  </span>
-                </button>
-              </div>
-              <p className="text-[9px] text-center text-white/40">
-                Gateway token launching soon. USDC available now.
+            <div className="space-y-2">
+              <p className="text-[10px] text-center text-white/50">
+                Payment: <span className="font-bold text-white">${usdcDisplayAmount.toFixed(3)} USDC</span>
               </p>
             </div>
           )}
@@ -1143,7 +1077,7 @@ export default function ChatDashboard() {
                 href={`https://solscan.io/tx/${metadata.transactionSignature}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 transition"
+                className="inline-flex items-center gap-1 text-forge-orange hover:text-forge-amber transition"
               >
                 View on Solscan
                 <ArrowUpRight className="w-3 h-3" />
@@ -1275,7 +1209,7 @@ export default function ChatDashboard() {
     return (
       <div className="flex flex-col items-center justify-center py-24 px-8 text-center gap-6">
         <p className="text-lg text-white/60 max-w-xl">
-          Connect your Solana wallet to access Gateway402x and start generating with premium AI models.
+          Connect your Solana wallet to access AI Studio and start generating with premium AI models.
         </p>
         <WalletMultiButton className="!bg-white !text-black hover:!bg-white/90 !text-base !font-bold !py-4 !px-8 !rounded-full transition" />
       </div>
@@ -1285,11 +1219,11 @@ export default function ChatDashboard() {
   return (
     <div className="h-[calc(100vh-80px)] flex flex-col">
       {/* Top Chat Bar */}
-      <div className="border-b border-white/10 bg-black/50 backdrop-blur-xl">
+      <div className="sticky top-0 z-10 border-b border-white/10 bg-black/40 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0 flex-1">
-              <span className="text-xs text-white/40 font-mono whitespace-nowrap">
+              <span className="text-xs text-white/50 font-mono whitespace-nowrap">
                 {walletAddress?.slice(0, 6)}...{walletAddress?.slice(-4)}
               </span>
               <div className="h-4 w-px bg-white/10"></div>
@@ -1297,7 +1231,7 @@ export default function ChatDashboard() {
                 {loadingChats ? (
                   <div className="text-xs text-white/40">Loading...</div>
                 ) : chats.length === 0 ? (
-                  <div className="text-xs text-white/40">No chats</div>
+                  <div className="text-xs text-white/30">No generations yet</div>
                 ) : (
                   chats.map((chat) => (
                     <button
@@ -1329,10 +1263,10 @@ export default function ChatDashboard() {
             </div>
             <button
               onClick={createChat}
-              className="flex items-center gap-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-xs font-semibold text-white transition whitespace-nowrap"
+              className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-xs font-bold text-white transition whitespace-nowrap"
             >
               <Plus className="w-3 h-3" />
-              New
+              New Chat
             </button>
           </div>
         </div>
@@ -1342,12 +1276,19 @@ export default function ChatDashboard() {
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4 py-6">
           {loadingMessages ? (
-            <div className="text-sm text-white/40 text-center">Loading messages...</div>
+            <div className="text-sm text-white/40 text-center">Loading...</div>
           ) : messages.length === 0 ? (
             <div className="h-full flex items-center justify-center py-20">
-              <div className="text-center space-y-2">
-                <div className="text-sm text-white/40">No messages yet</div>
-                <div className="text-xs text-white/30">Start by writing a prompt below</div>
+              <div className="text-center space-y-4 max-w-md">
+                <div className="w-16 h-16 mx-auto bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center">
+                  <svg className="w-8 h-8 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="text-base font-semibold text-white mb-1">Ready to Generate</div>
+                  <div className="text-sm text-white/40">Select a model and describe what you want to create</div>
+                </div>
               </div>
             </div>
           ) : (

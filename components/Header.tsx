@@ -9,26 +9,23 @@ export default function Header() {
   const { connected } = useWallet();
   
   return (
-    <header className="fixed top-0 w-full z-50 bg-dark/80 backdrop-blur-2xl border-b border-white/5">
+    <header className="fixed top-0 w-full z-50 bg-dark/90 backdrop-blur-2xl border-b border-white/10">
       <div className="max-w-[1800px] mx-auto px-6 md:px-12 lg:px-16">
         <div className="flex items-center justify-between h-20">
           {/* Logo - Left */}
           <Link href="/" className="flex items-center gap-3 group">
             <div className="relative">
-              <div className="w-10 h-10 rounded-lg overflow-hidden bg-white/5 flex items-center justify-center">
-                <Image 
-                  src="/GATEAWAY402X.png" 
-                  alt="Gateway402x Logo" 
-                  width={40} 
-                  height={40}
-                  className="object-contain"
-                />
-              </div>
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse" />
+              <Image 
+                src="/logo.png" 
+                alt="Gen402 Logo" 
+                width={40} 
+                height={40} 
+                className="group-hover:scale-110 transition-transform duration-300"
+              />
             </div>
             <div className="flex flex-col">
-              <span className="font-bold text-white text-lg tracking-tight">Gateway402x</span>
-              <span className="text-[9px] text-white/40 uppercase tracking-widest font-medium">HTTP 402 Protocol</span>
+              <span className="font-bold text-white text-lg tracking-tight">Gen402</span>
+              <span className="text-[9px] text-white/40 uppercase tracking-widest font-medium">Professional AI Studio</span>
             </div>
           </Link>
 
@@ -59,7 +56,7 @@ export default function Header() {
               Docs
             </Link>
             <a 
-              href="https://github.com/Gateaway402/gateaway402x" 
+              href="https://github.com/Gen402x/gen402" 
               target="_blank"
               rel="noopener noreferrer"
               className="px-5 py-2.5 text-sm text-white/60 hover:text-white hover:bg-white/5 rounded-lg transition-all font-medium flex items-center gap-2"
@@ -74,12 +71,12 @@ export default function Header() {
           {/* Wallet - Right */}
           <div className="flex items-center gap-4">
             {connected && (
-              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-full">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                <span className="text-xs text-green-400 font-medium">Connected</span>
+              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-forge-orange/10 border border-forge-orange/30 rounded-full">
+                <div className="w-2 h-2 bg-forge-orange rounded-full animate-pulse shadow-lg shadow-forge-orange/50" />
+                <span className="text-xs text-forge-orange font-medium">Connected</span>
               </div>
             )}
-            <WalletMultiButton className="!text-sm !py-2.5 !px-6 !rounded-full !font-semibold !bg-white !text-black hover:!bg-white/90 !transition-all" />
+            <WalletMultiButton className="!text-sm !py-2.5 !px-6 !rounded-full !font-semibold !bg-gradient-to-r !from-forge-orange !to-forge-red !text-white hover:!from-forge-orange/90 hover:!to-forge-red/90 !transition-all !shadow-lg !shadow-forge-orange/20" />
           </div>
         </div>
       </div>

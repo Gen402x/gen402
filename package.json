@@ -1,7 +1,13 @@
 {
-  "name": "gateway402x",
+  "name": "gen402",
   "version": "1.0.0",
   "private": true,
+  "description": "Professional AI Generation Platform using HTTP 402 Payment Protocol",
+  "homepage": "https://gen402x.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Gen402x/gen402.git"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",

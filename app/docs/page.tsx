@@ -50,7 +50,7 @@ export default function DocsPage() {
           <div className="mb-20">
             <h1 className="text-6xl md:text-7xl font-black mb-6 tracking-tight">Documentation</h1>
             <p className="text-2xl text-white/60 font-light max-w-3xl">
-              Complete guide to Gateway402x platform, HTTP 402 protocol implementation, and AI model access.
+              Complete guide to AI Studio platform, HTTP 402 protocol implementation, and AI model access.
             </p>
           </div>
 
@@ -85,14 +85,14 @@ export default function DocsPage() {
                 <h2 className="text-4xl font-black mb-6">Quick Start</h2>
                 <div className="space-y-6 text-white/70 leading-relaxed">
                   <p className="text-lg">
-                    Gateway402x provides direct access to premium AI models through HTTP 402 protocol. Get started in minutes with blockchain-verified payments.
+                    AI Studio provides direct access to premium AI models through HTTP 402 protocol. Get started in minutes with blockchain-verified payments.
                   </p>
                   
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="p-6 bg-white/5 border border-white/10 rounded-xl">
                       <div className="text-3xl font-black text-white mb-3">01</div>
                       <h3 className="text-xl font-bold text-white mb-2">Connect Wallet</h3>
-                      <p>Install a Solana wallet and connect it to Gateway402x platform.</p>
+                      <p>Install a Solana wallet and connect it to AI Studio platform.</p>
                     </div>
                     <div className="p-6 bg-white/5 border border-white/10 rounded-xl">
                       <div className="text-3xl font-black text-white mb-3">02</div>
@@ -121,10 +121,10 @@ export default function DocsPage() {
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <h3 className="text-2xl font-bold mb-2">Sora 2</h3>
-                        <span className="inline-block px-3 py-1 bg-purple-500/20 border border-purple-500/30 rounded-full text-xs font-bold">VIDEO</span>
+                        <span className="inline-block px-3 py-1 bg-teal-500/20 border border-teal-500/30 rounded-full text-xs font-bold">VIDEO</span>
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-black">$0.21</div>
+                        <div className="text-2xl font-black">$0.924</div>
                         <div className="text-sm text-white/40">per video</div>
                       </div>
                     </div>
@@ -140,10 +140,10 @@ export default function DocsPage() {
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <h3 className="text-2xl font-bold mb-2">Veo 3.1</h3>
-                        <span className="inline-block px-3 py-1 bg-purple-500/20 border border-purple-500/30 rounded-full text-xs font-bold">VIDEO</span>
+                        <span className="inline-block px-3 py-1 bg-teal-500/20 border border-teal-500/30 rounded-full text-xs font-bold">VIDEO</span>
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-black">$0.36</div>
+                        <div className="text-2xl font-black">$1.296</div>
                         <div className="text-sm text-white/40">per video</div>
                       </div>
                     </div>
@@ -159,10 +159,10 @@ export default function DocsPage() {
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <h3 className="text-2xl font-bold mb-2">GPT-Image</h3>
-                        <span className="inline-block px-3 py-1 bg-green-500/20 border border-green-500/30 rounded-full text-xs font-bold">IMAGE</span>
+                        <span className="inline-block px-3 py-1 bg-emerald-500/20 border border-emerald-500/30 rounded-full text-xs font-bold">IMAGE</span>
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-black">$0.042</div>
+                        <div className="text-2xl font-black">$0.152</div>
                         <div className="text-sm text-white/40">per image</div>
                       </div>
                     </div>
@@ -178,10 +178,10 @@ export default function DocsPage() {
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <h3 className="text-2xl font-bold mb-2">Ideogram V3</h3>
-                        <span className="inline-block px-3 py-1 bg-green-500/20 border border-green-500/30 rounded-full text-xs font-bold">IMAGE</span>
+                        <span className="inline-block px-3 py-1 bg-emerald-500/20 border border-emerald-500/30 rounded-full text-xs font-bold">IMAGE</span>
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-black">$0.066</div>
+                        <div className="text-2xl font-black">$0.292</div>
                         <div className="text-sm text-white/40">per image</div>
                       </div>
                     </div>
@@ -197,10 +197,10 @@ export default function DocsPage() {
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <h3 className="text-2xl font-bold mb-2">Qwen</h3>
-                        <span className="inline-block px-3 py-1 bg-green-500/20 border border-green-500/30 rounded-full text-xs font-bold">IMAGE</span>
+                        <span className="inline-block px-3 py-1 bg-emerald-500/20 border border-emerald-500/30 rounded-full text-xs font-bold">IMAGE</span>
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-black">$0.030</div>
+                        <div className="text-2xl font-black">$0.108</div>
                         <div className="text-sm text-white/40">per image</div>
                       </div>
                     </div>
@@ -219,18 +219,18 @@ export default function DocsPage() {
                 <h2 className="text-4xl font-black mb-6">Payment System</h2>
                 <div className="space-y-6 text-white/70 leading-relaxed">
                   <p className="text-lg">
-                    Gateway402x uses Solana blockchain for secure, instant payments. All transactions are verified on-chain.
+                    AI Studio uses Solana blockchain for secure, instant payments. All transactions are verified on-chain.
                   </p>
                   
                   <div className="p-6 bg-white/5 border border-white/10 rounded-xl">
                     <h3 className="text-xl font-bold text-white mb-4">Payment Options</h3>
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full" />
-                        <span><strong className="text-white">$GATEWAY Token:</strong> Coming soon - Pay at standard 1x price</span>
+                        <div className="w-2 h-2 bg-emerald-400 rounded-full" />
+                        <span><strong className="text-white">Platform Token:</strong> Coming soon - Pay at standard 1x price</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 bg-orange-400 rounded-full" />
+                        <div className="w-2 h-2 bg-teal-400 rounded-full" />
                         <span><strong className="text-white">USDC:</strong> Available now - Pay at 4x premium</span>
                       </div>
                     </div>
@@ -265,13 +265,13 @@ export default function DocsPage() {
                 <h2 className="text-4xl font-black mb-6">HTTP 402 Protocol</h2>
                 <div className="space-y-6 text-white/70 leading-relaxed">
                   <p className="text-lg">
-                    Gateway402x implements the HTTP 402 Payment Required status code for native payment handling.
+                    AI Studio implements the HTTP 402 Payment Required status code for native payment handling.
                   </p>
                   
                   <div className="p-6 bg-black/40 border border-white/10 rounded-xl font-mono text-sm overflow-x-auto">
-                    <div className="text-green-400 mb-2">// Request without payment</div>
+                    <div className="text-emerald-400 mb-2">// Request without payment</div>
                     <div className="text-white/80">POST /api/generate</div>
-                    <div className="text-blue-400 mt-4 mb-2">// Server response</div>
+                    <div className="text-teal-400 mt-4 mb-2">// Server response</div>
                     <div className="text-white/80">HTTP/1.1 402 Payment Required</div>
                     <div className="text-white/60 mt-2">{'{'}</div>
                     <div className="text-white/60 ml-4">"amount": 0.21,</div>
@@ -289,7 +289,7 @@ export default function DocsPage() {
                 <h2 className="text-4xl font-black mb-6">Wallet Setup</h2>
                 <div className="space-y-6 text-white/70 leading-relaxed">
                   <p className="text-lg">
-                    A Solana wallet is required to use Gateway402x. We support all major Solana wallets.
+                    A Solana wallet is required to use AI Studio. We support all major Solana wallets.
                   </p>
                   
                   <div className="grid md:grid-cols-3 gap-4">
@@ -307,24 +307,24 @@ export default function DocsPage() {
                     </div>
                   </div>
 
-                  <div className="p-6 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                  <div className="p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
                     <h3 className="text-xl font-bold text-white mb-4">Setup Steps</h3>
                     <ol className="space-y-3">
                       <li className="flex gap-3">
-                        <span className="font-bold text-blue-400">1.</span>
+                        <span className="font-bold text-emerald-400">1.</span>
                         <span>Install your preferred wallet extension or mobile app</span>
                       </li>
                       <li className="flex gap-3">
-                        <span className="font-bold text-blue-400">2.</span>
+                        <span className="font-bold text-emerald-400">2.</span>
                         <span>Purchase SOL and USDC from an exchange</span>
                       </li>
                       <li className="flex gap-3">
-                        <span className="font-bold text-blue-400">3.</span>
+                        <span className="font-bold text-emerald-400">3.</span>
                         <span>Transfer tokens to your Solana wallet address</span>
                       </li>
                       <li className="flex gap-3">
-                        <span className="font-bold text-blue-400">4.</span>
-                        <span>Connect wallet to Gateway402x and start creating</span>
+                        <span className="font-bold text-emerald-400">4.</span>
+                        <span>Connect wallet to AI Studio and start creating</span>
                       </li>
                     </ol>
                   </div>
@@ -336,13 +336,13 @@ export default function DocsPage() {
                 <h2 className="text-4xl font-black mb-6">API Reference</h2>
                 <div className="space-y-6 text-white/70 leading-relaxed">
                   <p className="text-lg">
-                    Gateway402x provides a REST API for programmatic access to all AI models.
+                    AI Studio provides a REST API for programmatic access to all AI models.
                   </p>
                   
                   <div className="p-6 bg-black/40 border border-white/10 rounded-xl">
                     <div className="font-bold text-white mb-4">Generate Content</div>
                     <div className="font-mono text-sm space-y-2">
-                      <div><span className="text-green-400">POST</span> <span className="text-white/80">/api/generate</span></div>
+                      <div><span className="text-emerald-400">POST</span> <span className="text-white/80">/api/generate</span></div>
                       <div className="text-white/60 mt-4">Request Body:</div>
                       <div className="text-white/60">{'{'}</div>
                       <div className="text-white/60 ml-4">"model": "sora-2",</div>
@@ -355,7 +355,7 @@ export default function DocsPage() {
                   <div className="p-6 bg-black/40 border border-white/10 rounded-xl">
                     <div className="font-bold text-white mb-4">Check Status</div>
                     <div className="font-mono text-sm space-y-2">
-                      <div><span className="text-blue-400">GET</span> <span className="text-white/80">/api/generate/:id</span></div>
+                      <div><span className="text-teal-400">GET</span> <span className="text-white/80">/api/generate/:id</span></div>
                       <div className="text-white/60 mt-4">Response:</div>
                       <div className="text-white/60">{'{'}</div>
                       <div className="text-white/60 ml-4">"status": "completed",</div>

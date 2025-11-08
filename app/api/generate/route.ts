@@ -92,12 +92,14 @@ export async function POST(request: NextRequest) {
     const rpcUrl = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 
                    clusterApiUrl('mainnet-beta');
     const connection = new Connection(rpcUrl, 'confirmed');
+    // Use the full price from models.ts (already 4x)
     const actualAmountPaid = typeof amountPaidUSD === 'number' && !Number.isNaN(amountPaidUSD)
       ? amountPaidUSD
       : modelInfo.price;
 
     const effectivePaymentMethod: 'payper' | 'usdc' = paymentMethod === 'usdc' ? 'usdc' : 'payper';
 
+    console.log('💰 Expected payment amount:', actualAmountPaid, 'USDC');
     const isPaid = await verifyUSDCPayment(connection, paymentSignature, actualAmountPaid);
 
     if (!isPaid) {
@@ -195,10 +197,10 @@ export async function POST(request: NextRequest) {
         
         const ideogramResponse = await createIdeogramTask({
           prompt,
-          renderingSpeed: options?.renderingSpeed || 'BALANCED',
+          renderingSpeed: options?.rendering_speed || options?.renderingSpeed || 'BALANCED',
           style: options?.style || 'AUTO',
           expandPrompt: options?.expandPrompt !== undefined ? options.expandPrompt : true,
-          imageSize: options?.imageSize || 'square_hd',
+          imageSize: options?.image_size || options?.imageSize || 'square_hd',
           numImages: options?.numImages || '1',
           seed: options?.seed,
           negativePrompt: options?.negativePrompt,
@@ -248,10 +250,10 @@ export async function POST(request: NextRequest) {
         
         const qwenResponse = await createQwenTask({
           prompt,
-          imageSize: options?.imageSize || 'square_hd',
-          numInferenceSteps: options?.numInferenceSteps || 30,
+          imageSize: options?.image_size || options?.imageSize || 'square_hd',
+          numInferenceSteps: options?.num_inference_steps || options?.numInferenceSteps || 30,
           seed: options?.seed,
-          guidanceScale: options?.guidanceScale || 2.5,
+          guidanceScale: options?.guidance_scale || options?.guidanceScale || 2.5,
           enableSafetyChecker: options?.enableSafetyChecker !== undefined ? options.enableSafetyChecker : true,
           outputFormat: options?.outputFormat || 'png',
           negativePrompt: options?.negativePrompt,
