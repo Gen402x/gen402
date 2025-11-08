@@ -1,8 +1,9 @@
 'use client';
 
-import { Download, Share2 } from 'lucide-react';
+import { Download, Share2, X, ZoomIn } from 'lucide-react';
 import Image from 'next/image';
 import JSZip from 'jszip';
+import { useState } from 'react';
 
 interface ResultDisplayProps {
   type: 'image' | 'video';
@@ -21,6 +22,7 @@ export default function ResultDisplay({
   modelName,
   onShare,
 }: ResultDisplayProps) {
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const handleDownload = async (imageUrl?: string, index?: number) => {
     const downloadUrl = imageUrl || url;
     const timestamp = Date.now();
@@ -106,21 +108,30 @@ export default function ResultDisplay({
           </div>
           <div className="grid grid-cols-2 gap-2 sm:gap-3">
             {displayUrls.map((imgUrl, index) => (
-              <div key={index} className="group relative border border-white/10 overflow-hidden bg-white/5 rounded-lg">
-                <div className="relative w-full aspect-square">
+              <div key={index} className="group relative border border-white/10 overflow-hidden bg-white/5 rounded-lg cursor-pointer">
+                <div 
+                  className="relative w-full aspect-square"
+                  onClick={() => setLightboxImage(imgUrl)}
+                >
                   <Image
                     src={imgUrl}
                     alt={`${prompt} - ${index + 1}`}
                     fill
-                    className="object-cover"
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
                     unoptimized
                   />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                    <ZoomIn className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  </div>
                 </div>
                 <button
-                  onClick={() => handleDownload(imgUrl, index)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownload(imgUrl, index);
+                  }}
                   className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 p-1.5 sm:p-2 bg-dark/90 hover:bg-dark
                            border border-white/20 opacity-0 group-hover:opacity-100 rounded-lg
-                           transition-opacity duration-200"
+                           transition-opacity duration-200 z-10"
                   title={`Download image ${index + 1}`}
                 >
                   <Download className="w-3 h-3 text-white" />
@@ -130,16 +141,22 @@ export default function ResultDisplay({
           </div>
         </div>
       ) : (
-        <div className="border border-white/10 overflow-hidden bg-white/5 rounded-lg">
+        <div className="border border-white/10 overflow-hidden bg-white/5 rounded-lg group">
           {type === 'image' ? (
-            <div className="relative w-full aspect-square">
+            <div 
+              className="relative w-full aspect-square cursor-pointer"
+              onClick={() => setLightboxImage(url)}
+            >
               <Image
                 src={url}
                 alt={prompt}
                 fill
-                className="object-cover"
+                className="object-cover transition-transform duration-300 group-hover:scale-105"
                 unoptimized
               />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              </div>
             </div>
           ) : (
             <div className="flex justify-center items-center bg-white/5">
@@ -185,6 +202,41 @@ export default function ResultDisplay({
           <span className="text-[10px] sm:text-xs text-white/60 uppercase tracking-wider font-semibold">Share</span>
         </button>
       </div>
+
+      {/* Lightbox Modal */}
+      {lightboxImage && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button
+            onClick={() => setLightboxImage(null)}
+            className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-all z-10"
+          >
+            <X className="w-6 h-6 text-white" />
+          </button>
+          <div 
+            className="relative max-w-[90vw] max-h-[90vh] w-auto h-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={lightboxImage}
+              alt={prompt}
+              className="max-w-full max-h-[90vh] w-auto h-auto object-contain rounded-lg"
+            />
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDownload(lightboxImage);
+              }}
+              className="absolute bottom-4 right-4 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-all flex items-center gap-2"
+            >
+              <Download className="w-4 h-4 text-white" />
+              <span className="text-sm text-white font-bold">Download</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

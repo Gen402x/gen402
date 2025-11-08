@@ -48,7 +48,7 @@ export default function Home() {
                 </p>
 
                 {/* CTA Buttons */}
-                <div className="flex flex-wrap gap-4 mb-16">
+                <div className="flex flex-wrap gap-4 mb-8">
                   <Link
                     href="/dashboard"
                     className="group px-8 py-4 bg-gradient-to-r from-forge-orange to-forge-red text-white font-bold text-base rounded-lg hover:shadow-xl hover:shadow-forge-orange/30 transition-all duration-300 hover:scale-105"
@@ -66,6 +66,32 @@ export default function Home() {
                   >
                     Documentation
                   </Link>
+                </div>
+
+                {/* Token CA */}
+                <div className="mb-16 p-4 bg-white/5 border border-white/10 rounded-xl max-w-2xl">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs text-white/50 uppercase tracking-wider font-bold mb-2">GEN402 Token CA</div>
+                      <div className="font-mono text-sm text-white/80 break-all">
+                        FbVjCKgm8us17ZhQCdXvwzXdeEaCPhvymvXwPJFKpump
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText('FbVjCKgm8us17ZhQCdXvwzXdeEaCPhvymvXwPJFKpump');
+                        const btn = document.getElementById('ca-copy-btn');
+                        if (btn) {
+                          btn.textContent = 'Copied!';
+                          setTimeout(() => btn.textContent = 'Copy', 2000);
+                        }
+                      }}
+                      id="ca-copy-btn"
+                      className="px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/10 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all whitespace-nowrap"
+                    >
+                      Copy
+                    </button>
+                  </div>
                 </div>
 
                 {/* Stats Grid */}
