@@ -704,8 +704,11 @@ export default function ChatDashboard() {
       const amountPaidUSD = metadata.amountUSD;
 
       console.log('📤 Sending to API - Amount:', amountPaidUSD, 'USDC');
+      console.log('🔑 Payment Signature:', signature);
+      console.log('👛 User Wallet:', walletAddress);
+      console.log('🎨 Model:', model.id);
       
-      const response = await axios.post('/api/generate', {
+      const requestBody = {
         model: model.id,
         prompt: metadata.prompt,
         type: metadata.generationType,
@@ -714,7 +717,11 @@ export default function ChatDashboard() {
         userWallet: walletAddress,
         paymentMethod: 'usdc',
         amountPaidUSD,
-      });
+      };
+      
+      console.log('📦 Full request body:', JSON.stringify(requestBody, null, 2));
+      
+      const response = await axios.post('/api/generate', requestBody);
 
       if (response?.data?.success) {
         const needsPolling = POLLING_MODELS.has(model.id) && response.data.taskId;

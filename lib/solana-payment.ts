@@ -24,9 +24,16 @@ export const PAYMENT_TOKEN_MINT_ADDRESS = new PublicKey('EPjFWdd5AufqSSqeM2qN1xz
 export const getPaymentWalletAddress = (): PublicKey => {
   const paymentWalletAddress = process.env.NEXT_PUBLIC_PAYMENT_WALLET_ADDRESS;
   if (!paymentWalletAddress) {
-    throw new Error('NEXT_PUBLIC_PAYMENT_WALLET_ADDRESS is not configured');
+    console.error('⚠️ NEXT_PUBLIC_PAYMENT_WALLET_ADDRESS is not configured in environment variables!');
+    throw new Error('Payment wallet is not configured. Please contact support.');
   }
-  return new PublicKey(paymentWalletAddress);
+  console.log('💰 Payment wallet address:', paymentWalletAddress);
+  try {
+    return new PublicKey(paymentWalletAddress);
+  } catch (error) {
+    console.error('⚠️ Invalid payment wallet address format:', paymentWalletAddress);
+    throw new Error('Invalid payment wallet configuration. Please contact support.');
+  }
 };
 
 // Token decimals (USDC has 6 decimals)
@@ -94,7 +101,19 @@ export async function sendUSDCPayment(
     console.log('📦 Til Token Account:', toTokenAccount.toBase58());
 
     // Check if user's token account exists
-    const fromAccountInfo = await connection.getAccountInfo(fromTokenAccount);
+    console.log('🔍 Checking if user token account exists...');
+    let fromAccountInfo;
+    try {
+      fromAccountInfo = await connection.getAccountInfo(fromTokenAccount);
+    } catch (error: any) {
+      console.error('❌ Error checking user account:', error);
+      return {
+        success: false,
+        signature: '',
+        error: `Could not verify your wallet: ${error.message}`,
+      };
+    }
+    
     if (!fromAccountInfo) {
       console.log('⚠️  User USDC account does not exist!');
       return {
@@ -103,6 +122,7 @@ export async function sendUSDCPayment(
         error: 'You do not have USDC. Please add USDC to your wallet first.',
       };
     }
+    console.log('✅ User token account exists');
 
     // Check token balance
     try {
@@ -130,14 +150,25 @@ export async function sendUSDCPayment(
     }
 
     // Check if recipient's token account exists
-    const toAccountInfo = await connection.getAccountInfo(toTokenAccount);
+    console.log('🔍 Checking if recipient token account exists...');
+    let toAccountInfo;
+    try {
+      toAccountInfo = await connection.getAccountInfo(toTokenAccount);
+    } catch (error: any) {
+      console.error('❌ Error checking recipient account:', error);
+      return {
+        success: false,
+        signature: '',
+        error: `Could not verify payment wallet: ${error.message}`,
+      };
+    }
 
     // Create transaction
     const transaction = new Transaction();
     
     // If recipient's token account doesn't exist, create it first
     if (!toAccountInfo) {
-      console.log('📝 Creating recipient USDC account...');
+      console.log('📝 Recipient token account does not exist - will create it in transaction');
       transaction.add(
         createAssociatedTokenAccountInstruction(
           payerPublicKey, // payer
@@ -148,6 +179,8 @@ export async function sendUSDCPayment(
           ASSOCIATED_TOKEN_PROGRAM_ID
         )
       );
+    } else {
+      console.log('✅ Recipient token account exists');
     }
     
     // Add transfer instruction
@@ -262,25 +295,55 @@ export async function verifyUSDCPayment(
 ): Promise<boolean> {
   try {
     console.log('🔍 Verifying payment:', signature);
+    console.log('💰 Expected amount:', expectedAmount, 'USDC');
     
-    const transaction = await connection.getTransaction(signature, {
-      commitment: 'confirmed',
-      maxSupportedTransactionVersion: 0,
-    });
+    // Retry up to 5 times with 2 second delay (total 10 seconds max)
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      console.log(`🔄 Verification attempt ${attempt}/5...`);
+      
+      try {
+        const transaction = await connection.getTransaction(signature, {
+          commitment: 'confirmed',
+          maxSupportedTransactionVersion: 0,
+        });
 
-    if (!transaction) {
-      console.error('❌ Transaction not found');
-      return false;
+        if (!transaction) {
+          console.warn(`⚠️  Transaction not found yet (attempt ${attempt}/5)`);
+          if (attempt < 5) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            continue;
+          }
+          console.error('❌ Transaction not found after 5 attempts');
+          return false;
+        }
+
+        if (transaction.meta?.err) {
+          console.error('❌ Transaction failed on-chain:', transaction.meta.err);
+          return false;
+        }
+
+        console.log('✅ Transaction found and confirmed');
+        console.log('📋 Transaction meta:', {
+          fee: transaction.meta?.fee,
+          preBalances: transaction.meta?.preBalances?.length,
+          postBalances: transaction.meta?.postBalances?.length,
+          innerInstructions: transaction.meta?.innerInstructions?.length,
+        });
+
+        // Verify amount (this is simplified - in production you should parse transaction logs)
+        console.log('✅ Payment verified successfully!');
+        return true;
+      } catch (error: any) {
+        console.warn(`⚠️  Error on attempt ${attempt}:`, error.message);
+        if (attempt < 5) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          continue;
+        }
+        throw error;
+      }
     }
-
-    if (transaction.meta?.err) {
-      console.error('❌ Transaction failed:', transaction.meta.err);
-      return false;
-    }
-
-    // Verify amount (this is simplified - in production you should parse transaction logs)
-    console.log('✅ Transaction verified');
-    return true;
+    
+    return false;
   } catch (error) {
     console.error('❌ Verification error:', error);
     return false;

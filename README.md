@@ -65,7 +65,7 @@ Required environment variables:
 ```env
 # Solana Blockchain
 NEXT_PUBLIC_SOLANA_RPC_URL=your_helius_rpc_url
-NEXT_PUBLIC_PAYMENT_WALLET_ADDRESS=your_payment_wallet
+NEXT_PUBLIC_PAYMENT_WALLET_ADDRESS=your_payment_wallet  # REQUIRED - Solana wallet to receive payments
 
 # Supabase Database
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
@@ -79,6 +79,16 @@ IDEOGRAM_API_KEY=your_kie_ai_key
 QWEN_API_KEY=your_kie_ai_key
 SORA_API_KEY=your_kie_ai_key
 ```
+
+**IMPORTANT:** `NEXT_PUBLIC_PAYMENT_WALLET_ADDRESS` must be set to a valid Solana wallet address where you want to receive payments. Example: `FXp6jM...Gf78`
+
+#### Setting up for Vercel Deployment
+
+1. Go to your project settings on Vercel
+2. Navigate to "Environment Variables"
+3. Add all required environment variables
+4. Make sure `NEXT_PUBLIC_PAYMENT_WALLET_ADDRESS` is set correctly
+5. Redeploy your application
 
 See `env.example` for complete configuration options and pricing setup.
 
