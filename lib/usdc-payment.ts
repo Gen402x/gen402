@@ -188,10 +188,7 @@ export async function sendDirectUSDCPayment(
     // Simulate transaction first to catch errors (optional - skip if simulation fails)
     try {
       console.log('🔍 Simulating transaction...');
-      const simulation = await connection.simulateTransaction(transaction, {
-        commitment: 'confirmed',
-        sigVerify: false, // Skip signature verification in simulation
-      });
+      const simulation = await connection.simulateTransaction(transaction);
       
       if (simulation.value.err) {
         console.warn('⚠️  Transaction simulation warning:', simulation.value.err);
