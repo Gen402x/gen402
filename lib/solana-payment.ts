@@ -300,27 +300,27 @@ export async function verifyUSDCPayment(
     // Retry up to 5 times with 2 second delay (total 10 seconds max)
     for (let attempt = 1; attempt <= 5; attempt++) {
       console.log(`🔄 Verification attempt ${attempt}/5...`);
-      
+    
       try {
-        const transaction = await connection.getTransaction(signature, {
-          commitment: 'confirmed',
-          maxSupportedTransactionVersion: 0,
-        });
+    const transaction = await connection.getTransaction(signature, {
+      commitment: 'confirmed',
+      maxSupportedTransactionVersion: 0,
+    });
 
-        if (!transaction) {
+    if (!transaction) {
           console.warn(`⚠️  Transaction not found yet (attempt ${attempt}/5)`);
           if (attempt < 5) {
             await new Promise(resolve => setTimeout(resolve, 2000));
             continue;
           }
           console.error('❌ Transaction not found after 5 attempts');
-          return false;
-        }
+      return false;
+    }
 
-        if (transaction.meta?.err) {
+    if (transaction.meta?.err) {
           console.error('❌ Transaction failed on-chain:', transaction.meta.err);
-          return false;
-        }
+      return false;
+    }
 
         console.log('✅ Transaction found and confirmed');
         console.log('📋 Transaction meta:', {
@@ -330,9 +330,9 @@ export async function verifyUSDCPayment(
           innerInstructions: transaction.meta?.innerInstructions?.length,
         });
 
-        // Verify amount (this is simplified - in production you should parse transaction logs)
+    // Verify amount (this is simplified - in production you should parse transaction logs)
         console.log('✅ Payment verified successfully!');
-        return true;
+    return true;
       } catch (error: any) {
         console.warn(`⚠️  Error on attempt ${attempt}:`, error.message);
         if (attempt < 5) {

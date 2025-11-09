@@ -313,6 +313,25 @@ export async function sendCustomTokenPayment(
 
     console.log('✅ Custom token payment successful!');
     
+    // TODO: Token burn mechanism (disabled for now)
+    // Queue token burn for deflationary mechanism
+    // Import dynamically to avoid circular dependencies
+    /*
+    try {
+      const { queueTokenBurn } = await import('./token-burn');
+      queueTokenBurn({
+        paymentSignature: signature,
+        paymentWalletPublicKey: paymentWallet.toBase58(),
+        tokenAccountAddress: toTokenAccount.toBase58(),
+        amountPaid: tokenAmountRaw,
+      });
+      console.log('🔥 Queued GEN token burn for deflationary mechanism');
+    } catch (burnError) {
+      console.error('⚠️  Failed to queue burn (payment still successful):', burnError);
+      // Don't fail the payment if burn queueing fails
+    }
+    */
+    
     return {
       signature,
       success: true,

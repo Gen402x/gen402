@@ -4,6 +4,8 @@ import { queryVeoTaskStatus } from '@/lib/veo-ai';
 import { query4oImageStatus } from '@/lib/openai-image';
 import { queryIdeogramStatus } from '@/lib/ideogram-ai';
 import { queryQwenStatus } from '@/lib/qwen-ai';
+import { getGrokTaskStatus } from '@/lib/grok-ai';
+import { getSunoTaskStatus } from '@/lib/suno-ai';
 import { downloadAndUploadMultipleToSupabase } from '@/lib/supabase-helpers';
 import { getPaymentInfo, clearPaymentTracking } from '@/lib/payment-tracking';
 import { sendRefund } from '@/lib/refund';
@@ -39,9 +41,16 @@ export async function GET(
     let is4oImage = false;
     let isIdeogram = false;
     let isQwen = false;
+    let isGrok = false;
+    let isSuno = false;
 
     // Use model parameter to determine which API to call
-    if (model === 'gpt-image-1') {
+    if (model === 'suno-v3.5' || model === 'suno-v4.5' || model === 'suno-v5') {
+      console.log('🎯 Calling Suno API directly...');
+      taskResponse = await getSunoTaskStatus(taskId);
+      isSuno = true;
+      console.log('✅ Suno API responded');
+    } else if (model === 'gpt-image-1') {
       console.log('🎯 Calling 4o Image API directly...');
       taskResponse = await query4oImageStatus(taskId);
       is4oImage = true;
@@ -66,6 +75,11 @@ export async function GET(
       taskResponse = await queryTaskStatus(taskId);
       isSora = true;
       console.log('✅ Sora API responded');
+    } else if (model === 'grok-imagine') {
+      console.log('🎯 Calling Grok API directly...');
+      taskResponse = await getGrokTaskStatus(taskId);
+      isGrok = true;
+      console.log('✅ Grok API responded');
     } else {
       // Fallback: Try both APIs if model not specified (backward compatibility)
       console.log('⚠️ No model specified, trying both APIs...');
@@ -349,6 +363,141 @@ export async function GET(
           taskId: data.taskId,
           state: 'processing',
           message: 'Video generation in progress',
+        });
+      }
+    }
+
+    // Handle Grok response (uses state)
+    if (isGrok) {
+      console.log('🎯 Grok state:', data.state);
+      
+      if (data.state === 'success' && data.resultJson) {
+        console.log('🎉 GROK VIDEO IS READY!');
+        
+        const result = JSON.parse(data.resultJson);
+        const videoUrl = result.resultUrls[0];
+        
+        console.log('🎥 FINAL VIDEO URL:', videoUrl);
+        
+        // Download from Grok and upload to our Supabase
+        console.log('📥 Downloading and uploading video to Supabase...');
+        const supabaseUrls = await downloadAndUploadMultipleToSupabase(result.resultUrls, 'generated-videos');
+        console.log('✅ Videos uploaded to Supabase:', supabaseUrls);
+        
+        // Clear payment tracking on success
+        clearPaymentTracking(taskId);
+        
+        return NextResponse.json({
+          success: true,
+          taskId: data.taskId,
+          result: supabaseUrls[0],
+          resultUrls: supabaseUrls,
+          type: 'video',
+          state: 'completed',
+          model: 'grok-imagine',
+        });
+      } else if (data.state === 'fail') {
+        // Failed
+        console.log('❌ Grok generation failed:', data.failMsg);
+        
+        // Clear payment tracking on failure
+        clearPaymentTracking(taskId);
+        
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Generation failed',
+            failMsg: data.failMsg,
+            failCode: data.failCode,
+            state: 'failed',
+          },
+          { status: 500 }
+        );
+      } else {
+        // Still processing (state === 'waiting', 'queuing', or 'generating')
+        console.log('⏳ Still generating Grok video, state:', data.state);
+        return NextResponse.json({
+          success: false,
+          taskId: data.taskId,
+          state: data.state || 'processing',
+          message: `Video generation in progress (${data.state || 'processing'})`,
+        });
+      }
+    }
+
+    // Handle Suno response (uses status)
+    if (isSuno) {
+      console.log('🎯 Suno status:', data.status);
+      
+      if ((data.status === 'SUCCESS' || data.status === 'FIRST_SUCCESS') && data.response?.sunoData) {
+        console.log('🎉 SUNO MUSIC IS READY!');
+        
+        const tracks = data.response.sunoData;
+        console.log('🎵 Number of tracks:', tracks.length);
+        
+        // Get completed tracks (those with audioUrl)
+        const completedTracks = tracks.filter((track: any) => track.audioUrl);
+        
+        if (completedTracks.length > 0) {
+          console.log('🎵 Completed tracks:', completedTracks.length);
+          
+          // Download from Suno and upload to our Supabase
+          console.log('📥 Downloading and uploading music to Supabase...');
+          const audioUrls = completedTracks.map((track: any) => track.audioUrl);
+          const supabaseUrls = await downloadAndUploadMultipleToSupabase(audioUrls, 'generated-music');
+          console.log('✅ Music uploaded to Supabase:', supabaseUrls);
+          
+          // Clear payment tracking on success
+          clearPaymentTracking(taskId);
+          
+          return NextResponse.json({
+            success: true,
+            taskId: data.taskId,
+            result: supabaseUrls[0],
+            resultUrls: supabaseUrls,
+            tracks: completedTracks.map((track: any, index: number) => ({
+              ...track,
+              audioUrl: supabaseUrls[index], // Use our Supabase URL
+            })),
+            type: 'music',
+            state: 'completed',
+            model: model,
+          });
+        }
+      } else if (data.status === 'TEXT_SUCCESS') {
+        // Lyrics generated, waiting for audio
+        console.log('⏳ Lyrics generated, waiting for audio...');
+        return NextResponse.json({
+          success: false,
+          taskId: data.taskId,
+          state: 'processing',
+          message: 'Lyrics generated, generating audio...',
+        });
+      } else if (data.status === 'CREATE_TASK_FAILED' || data.status === 'GENERATE_AUDIO_FAILED' || data.status === 'SENSITIVE_WORD_ERROR') {
+        // Failed
+        console.log('❌ Suno generation failed:', data.errorMessage);
+        
+        // Clear payment tracking on failure
+        clearPaymentTracking(taskId);
+        
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Music generation failed',
+            errorMessage: data.errorMessage,
+            errorCode: data.errorCode,
+            state: 'failed',
+          },
+          { status: 500 }
+        );
+      } else {
+        // Still processing (status === 'PENDING')
+        console.log('⏳ Still generating Suno music, status:', data.status);
+        return NextResponse.json({
+          success: false,
+          taskId: data.taskId,
+          state: 'processing',
+          message: `Music generation in progress (${data.status})`,
         });
       }
     }

@@ -6,9 +6,9 @@ import JSZip from 'jszip';
 import { useState } from 'react';
 
 interface ResultDisplayProps {
-  type: 'image' | 'video';
+  type: 'image' | 'video' | 'music';
   url: string;
-  urls?: string[]; // Multiple results (for 4o Image variants)
+  urls?: string[]; // Multiple results (for 4o Image variants or music tracks)
   prompt: string;
   modelName: string;
   onShare: () => void;
@@ -26,12 +26,13 @@ export default function ResultDisplay({
   const handleDownload = async (imageUrl?: string, index?: number) => {
     const downloadUrl = imageUrl || url;
     const timestamp = Date.now();
+    const fileExt = type === 'image' ? 'png' : type === 'video' ? 'mp4' : 'mp3';
     const fileName = index !== undefined 
-      ? `ai-studio-image-${index + 1}-${timestamp}.png`
-      : `ai-studio-${type}-${timestamp}.${type === 'image' ? 'png' : 'mp4'}`;
+      ? `ai-studio-${type}-${index + 1}-${timestamp}.${fileExt}`
+      : `ai-studio-${type}-${timestamp}.${fileExt}`;
 
     try {
-      // Since images are now from our Supabase, direct fetch should work
+      // Since files are now from our Supabase, direct fetch should work
       const response = await fetch(downloadUrl);
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
@@ -158,9 +159,13 @@ export default function ResultDisplay({
                 <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
             </div>
-          ) : (
+          ) : type === 'video' ? (
             <div className="flex justify-center items-center bg-white/5">
               <video src={url} controls className="max-w-md w-full rounded" />
+            </div>
+          ) : (
+            <div className="flex justify-center items-center bg-white/5 p-8">
+              <audio src={url} controls className="w-full max-w-md" />
             </div>
           )}
         </div>

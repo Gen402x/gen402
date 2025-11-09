@@ -14,7 +14,7 @@ HTTP 402 Payment Required is a reserved HTTP status code intended for digital pa
 
 Gen402 uses HTTP 402 as a protocol layer between users and AI generation services:
 
-1. **Request** → User requests AI generation (image/video)
+1. **Request** → User requests AI generation (image/video/music)
 2. **402 Response** → Server responds with payment requirement and details
 3. **Payment** → User completes blockchain payment via Solana wallet
 4. **Verification** → Server verifies on-chain transaction
@@ -30,9 +30,13 @@ This creates a trustless, transparent payment flow where:
 
 | Model | Type | Price | Provider |
 |-------|------|-------|----------|
+| Suno V3.5 | Music | $0.010 | Suno |
+| Suno V4.5 | Music | $0.012 | Suno |
+| Suno V5 | Music | $0.015 | Suno |
 | Qwen | Image | $0.108 | Alibaba Cloud |
 | 4o Image | Image | $0.152 | OpenAI |
 | Ideogram V3 | Image | $0.292 | Ideogram |
+| Grok Imagine | Video | $0.300 | xAI |
 | Sora 2 | Video | $0.924 | OpenAI |
 | Veo 3.1 | Video | $1.296 | Google |
 
@@ -78,6 +82,8 @@ VEO_AI_API_KEY=your_kie_ai_key
 IDEOGRAM_API_KEY=your_kie_ai_key
 QWEN_API_KEY=your_kie_ai_key
 SORA_API_KEY=your_kie_ai_key
+GROK_API_KEY=your_kie_ai_key
+SUNO_API_KEY=your_kie_ai_key
 ```
 
 **IMPORTANT:** `NEXT_PUBLIC_PAYMENT_WALLET_ADDRESS` must be set to a valid Solana wallet address where you want to receive payments. Example: `FXp6jM...Gf78`

@@ -47,17 +47,52 @@ export const videoModels: ModelInfo[] = [
     price: 0.324 * DISPLAY_MULTIPLIER, // 1.296
     type: 'video',
   },
+  {
+    id: 'grok-imagine',
+    name: 'Grok Imagine',
+    provider: 'xAI',
+    description: 'Text-to-video or animate images with AI-powered motion',
+    price: parseFloat(process.env.PRICE_VIDEO_GROK || '0.075') * DISPLAY_MULTIPLIER, // 0.3
+    type: 'video',
+  },
+];
+
+export const musicModels: ModelInfo[] = [
+  {
+    id: 'suno-v3.5',
+    name: 'Suno V3.5',
+    provider: 'Suno',
+    description: 'Better song structure, max 4 min',
+    price: parseFloat(process.env.PRICE_MUSIC_SUNO_V3_5 || '0.0025') * DISPLAY_MULTIPLIER, // 0.01
+    type: 'music',
+  },
+  {
+    id: 'suno-v4.5',
+    name: 'Suno V4.5',
+    provider: 'Suno',
+    description: 'Smarter prompts, faster generation, max 8 min',
+    price: parseFloat(process.env.PRICE_MUSIC_SUNO_V4_5 || '0.003') * DISPLAY_MULTIPLIER, // 0.012
+    type: 'music',
+  },
+  {
+    id: 'suno-v5',
+    name: 'Suno V5',
+    provider: 'Suno',
+    description: 'Superior musicality, faster generation, max 8 min',
+    price: parseFloat(process.env.PRICE_MUSIC_SUNO_V5 || '0.00375') * DISPLAY_MULTIPLIER, // 0.015
+    type: 'music',
+  },
 ];
 
 // Log model prices on initialization
 if (typeof window === 'undefined') {
   console.log('📊 Model Prices Initialized:');
-  [...imageModels, ...videoModels].forEach(model => {
+  [...imageModels, ...videoModels, ...musicModels].forEach(model => {
     console.log(`  - ${model.name}: $${model.price.toFixed(3)} USD`);
   });
 }
 
 export function getModelById(modelId: string): ModelInfo | undefined {
-  return [...imageModels, ...videoModels].find(m => m.id === modelId);
+  return [...imageModels, ...videoModels, ...musicModels].find(m => m.id === modelId);
 }
 

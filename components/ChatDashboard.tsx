@@ -4,9 +4,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import axios from 'axios';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import { Plus, ArrowUpRight, Trash2 } from 'lucide-react';
+import { Plus, ArrowUpRight, Trash2, X } from 'lucide-react';
 
-import { imageModels, videoModels } from '@/lib/models';
+import { imageModels, videoModels, musicModels } from '@/lib/models';
 import ResultDisplay from '@/components/ResultDisplay';
 import GenerationProgress from '@/components/GenerationProgress';
 import PaymentModal from '@/components/PaymentModal';
@@ -34,7 +34,7 @@ type PaymentRequestMetadata = {
   modelName: string;
   generationId: string;
   prompt: string;
-  generationType: 'image' | 'video';
+  generationType: 'image' | 'video' | 'music';
   options?: any;
   chatId: string;
 };
@@ -45,7 +45,7 @@ const defaultGenerationProgress = {
   estimatedTime: 150,
 };
 
-const POLLING_MODELS = new Set(['sora-2', 'veo-3.1', 'gpt-image-1', 'ideogram', 'qwen']);
+const POLLING_MODELS = new Set(['sora-2', 'veo-3.1', 'gpt-image-1', 'ideogram', 'qwen', 'grok-imagine', 'suno-v3.5', 'suno-v4.5', 'suno-v5']);
 
 const getEstimatedTime = (modelId: string, options?: Record<string, any>) => {
   switch (modelId) {
@@ -67,6 +67,12 @@ const getEstimatedTime = (modelId: string, options?: Record<string, any>) => {
       return options?.imageUrls && options.imageUrls.length > 0 ? 90 : 50;
     case 'sora-2':
       return options?.n_frames === '15' ? 240 : 150;
+    case 'grok-imagine':
+      return 120;
+    case 'suno-v3.5':
+    case 'suno-v4.5':
+    case 'suno-v5':
+      return 60;
     default:
       return 150;
   }
@@ -84,14 +90,14 @@ export default function ChatDashboard() {
   const [loadingMessages, setLoadingMessages] = useState(false);
 
   const [prompt, setPrompt] = useState('');
-  const [generationType, setGenerationType] = useState<'image' | 'video'>('image');
+  const [generationType, setGenerationType] = useState<'image' | 'video' | 'music'>('image');
   const [selectedModel, setSelectedModel] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(defaultGenerationProgress);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [payingGenerationId, setPayingGenerationId] = useState<string | null>(null);
   const [latestResult, setLatestResult] = useState<{
-    type: 'image' | 'video';
+    type: 'image' | 'video' | 'music';
     url: string;
     urls?: string[];
     prompt: string;
@@ -124,6 +130,23 @@ export default function ChatDashboard() {
   const [qwenNumInferenceSteps, setQwenNumInferenceSteps] = useState(30);
   const [qwenGuidanceScale, setQwenGuidanceScale] = useState(2.5);
   const [qwenAcceleration, setQwenAcceleration] = useState<'none' | 'regular' | 'high'>('none');
+  const [grokMode, setGrokMode] = useState<'normal' | 'fun' | 'spicy'>('normal');
+  const [grokInputMode, setGrokInputMode] = useState<'text' | 'image'>('text');
+  const [grokAspectRatio, setGrokAspectRatio] = useState<'2:3' | '3:2' | '1:1'>('1:1');
+  const [grokImages, setGrokImages] = useState<File[]>([]);
+  const [grokImagePreviews, setGrokImagePreviews] = useState<string[]>([]);
+  const [uploadingGrokImages, setUploadingGrokImages] = useState(false);
+
+  // Suno Music settings
+  const [sunoCustomMode, setSunoCustomMode] = useState(false);
+  const [sunoInstrumental, setSunoInstrumental] = useState(false);
+  const [sunoStyle, setSunoStyle] = useState('');
+  const [sunoTitle, setSunoTitle] = useState('');
+  const [sunoNegativeTags, setSunoNegativeTags] = useState('');
+  const [sunoVocalGender, setSunoVocalGender] = useState<'' | 'm' | 'f'>('');
+  const [sunoStyleWeight, setSunoStyleWeight] = useState(0.65);
+  const [sunoWeirdnessConstraint, setSunoWeirdnessConstraint] = useState(0.65);
+  const [sunoAudioWeight, setSunoAudioWeight] = useState(0.65);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const paymentStatusByGenerationId = useMemo(() => {
@@ -142,7 +165,7 @@ export default function ChatDashboard() {
   }, [messages]);
 
   const currentModels = useMemo(
-    () => (generationType === 'image' ? imageModels : videoModels),
+    () => (generationType === 'image' ? imageModels : generationType === 'video' ? videoModels : musicModels),
     [generationType]
   );
 
@@ -697,14 +720,14 @@ export default function ChatDashboard() {
       amountUSD: number;
       modelId: string;
       prompt: string;
-      generationType: 'image' | 'video';
+      generationType: 'image' | 'video' | 'music';
       options?: any;
       chatId: string;
       generationId?: string;
     },
     signature: string
   ) => {
-    const model = [...imageModels, ...videoModels].find((m) => m.id === metadata.modelId);
+    const model = [...imageModels, ...videoModels, ...musicModels].find((m) => m.id === metadata.modelId);
     if (!model) {
       console.error('Model not found for payment completion:', metadata.modelId);
       return;
@@ -838,6 +861,58 @@ export default function ChatDashboard() {
         options.num_inference_steps = qwenNumInferenceSteps;
         options.guidance_scale = qwenGuidanceScale;
         options.acceleration = qwenAcceleration;
+      } else if (selectedModel === 'grok-imagine') {
+        options.mode = grokMode;
+        options.grokInputMode = grokInputMode;
+        
+        if (grokInputMode === 'text') {
+          // Text-to-video mode
+          options.aspect_ratio = grokAspectRatio;
+        } else {
+          // Image-to-video mode - upload images
+          if (grokImages.length > 0) {
+            setUploadingGrokImages(true);
+            try {
+              const formData = new FormData();
+              grokImages.forEach(file => {
+                formData.append('files', file);
+              });
+              
+              const uploadResponse = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+              });
+              
+              if (uploadResponse.ok) {
+                const { urls } = await uploadResponse.json();
+                options.imageUrls = urls;
+                console.log('✅ Grok images uploaded:', urls);
+              } else {
+                throw new Error('Failed to upload images');
+              }
+            } catch (error) {
+              console.error('Image upload failed:', error);
+              alert('Failed to upload images. Please try again.');
+              setUploadingGrokImages(false);
+              return;
+            } finally {
+              setUploadingGrokImages(false);
+            }
+          }
+        }
+      } else if (selectedModel === 'suno-v3.5' || selectedModel === 'suno-v4.5' || selectedModel === 'suno-v5') {
+        // Suno music generation settings
+        options.customMode = sunoCustomMode;
+        options.instrumental = sunoInstrumental;
+        if (sunoCustomMode) {
+          if (sunoStyle) options.style = sunoStyle;
+          if (sunoTitle) options.title = sunoTitle;
+        }
+        if (sunoNegativeTags) options.negativeTags = sunoNegativeTags;
+        if (sunoVocalGender) options.vocalGender = sunoVocalGender;
+        options.styleWeight = sunoStyleWeight;
+        options.weirdnessConstraint = sunoWeirdnessConstraint;
+        options.audioWeight = sunoAudioWeight;
       }
       
       await handleGenerate(chatId, userMessage?.content || prompt.trim(), options);
@@ -862,7 +937,11 @@ export default function ChatDashboard() {
     qwenImageSize,
     qwenNumInferenceSteps,
     qwenGuidanceScale,
-    qwenAcceleration
+    qwenAcceleration,
+    grokMode,
+    grokInputMode,
+    grokAspectRatio,
+    grokImages
   ]);
 
   const renderMessageContent = (message: ChatMessage) => {
@@ -956,6 +1035,10 @@ export default function ChatDashboard() {
         if (opts.num_inference_steps) lines.push(`Steps: ${opts.num_inference_steps}`);
         if (opts.guidance_scale) lines.push(`Guidance: ${opts.guidance_scale}`);
         if (opts.acceleration && opts.acceleration !== 'none') lines.push(`Acceleration: ${opts.acceleration}`);
+        
+        // Grok Imagine specific
+        if (opts.grokInputMode) lines.push(`Input: ${opts.grokInputMode === 'text' ? 'Text-to-Video' : 'Image-to-Video'}`);
+        if (opts.mode) lines.push(`Mode: ${opts.mode}`);
         
         return lines.length > 0 ? lines : null;
       };
@@ -1270,7 +1353,7 @@ export default function ChatDashboard() {
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1 border border-white/10">
-                  {(['image', 'video'] as const).map((type) => (
+                  {(['image', 'video', 'music'] as const).map((type) => (
                     <button
                       key={type}
                       onClick={() => {
@@ -1316,24 +1399,40 @@ export default function ChatDashboard() {
                   {modelMenuOpen && (
                     <div className="absolute left-0 right-auto bottom-full mb-2 w-80 bg-black border border-white/20 shadow-2xl rounded-xl overflow-hidden z-20">
                       <div className="max-h-64 overflow-y-auto">
-                        {currentModels.map((model) => (
-                          <button
-                            key={model.id}
-                            onClick={() => {
-                              setSelectedModel(model.id);
-                              setModelMenuOpen(false);
-                              setSettingsOpen(false);
-                            }}
-                            className={`w-full text-left px-4 py-3 transition flex flex-col gap-1 ${
-                              selectedModel === model.id ? 'bg-white/10 text-white border-l-2 border-white' : 'hover:bg-white/5 text-white/80'
-                            }`}
-                          >
-                            <span className="text-sm font-semibold">{model.name}</span>
-                            <span className={`text-xs ${selectedModel === model.id ? 'text-white/70' : 'text-white/50'}`}>
-                              ${model.price.toFixed(3)} · {model.description}
-                            </span>
-                          </button>
-                        ))}
+                        {currentModels.map((model) => {
+                          const isComingSoon = model.id === 'grok-imagine';
+                          return (
+                            <button
+                              key={model.id}
+                              onClick={() => {
+                                if (isComingSoon) return; // Disable click for coming soon
+                                setSelectedModel(model.id);
+                                setModelMenuOpen(false);
+                                setSettingsOpen(false);
+                              }}
+                              disabled={isComingSoon}
+                              className={`w-full text-left px-4 py-3 transition flex flex-col gap-1 relative ${
+                                isComingSoon 
+                                  ? 'opacity-50 cursor-not-allowed bg-white/5' 
+                                  : selectedModel === model.id 
+                                    ? 'bg-white/10 text-white border-l-2 border-white' 
+                                    : 'hover:bg-white/5 text-white/80'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-semibold">{model.name}</span>
+                                {isComingSoon && (
+                                  <span className="px-2 py-0.5 bg-orange-500/20 text-orange-400 text-[10px] font-bold uppercase tracking-wider rounded">
+                                    Coming Soon
+                                  </span>
+                                )}
+                              </div>
+                              <span className={`text-xs ${selectedModel === model.id ? 'text-white/70' : 'text-white/50'}`}>
+                                ${model.price.toFixed(3)} · {model.description}
+                              </span>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -1342,14 +1441,14 @@ export default function ChatDashboard() {
 
               <button
                 onClick={handleSubmit}
-                disabled={!prompt.trim() || !selectedModel || isGenerating}
+                disabled={!prompt.trim() || !selectedModel || isGenerating || (selectedModel === 'grok-imagine' && grokInputMode === 'image' && grokImages.length === 0) || uploadingGrokImages}
                 className={`px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition ${
-                  !prompt.trim() || !selectedModel || isGenerating
+                  !prompt.trim() || !selectedModel || isGenerating || (selectedModel === 'grok-imagine' && grokInputMode === 'image' && grokImages.length === 0) || uploadingGrokImages
                     ? 'bg-white/10 text-white/30 cursor-not-allowed'
                     : 'bg-white text-black hover:bg-white/90'
                 }`}
               >
-                Generate
+                {uploadingGrokImages ? 'Uploading...' : 'Generate'}
               </button>
             </div>
 
@@ -1701,6 +1800,384 @@ export default function ChatDashboard() {
                               {acc}
                             </button>
                           ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Grok Imagine Settings */}
+                  {selectedModel === 'grok-imagine' && (
+                    <div className="space-y-4">
+                      {/* Input Mode Selector */}
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-white mb-2">Input Mode</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setGrokInputMode('text')}
+                            disabled={isGenerating}
+                            className={`py-2.5 px-3 rounded-lg text-xs font-semibold transition-all ${
+                              grokInputMode === 'text'
+                                ? 'bg-white text-black shadow-sm'
+                                : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                            }`}
+                          >
+                            Text-to-Video
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setGrokInputMode('image')}
+                            disabled={isGenerating}
+                            className={`py-2.5 px-3 rounded-lg text-xs font-semibold transition-all ${
+                              grokInputMode === 'image'
+                                ? 'bg-white text-black shadow-sm'
+                                : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                            }`}
+                          >
+                            Image-to-Video
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Image Upload (only for image mode) */}
+                      {grokInputMode === 'image' && (
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-white mb-2">
+                            Input Image <span className="text-forge-orange">*Required</span>
+                          </label>
+                          <div className="border-2 border-dashed border-white/20 rounded-lg p-4 hover:border-white/40 transition-colors">
+                            {grokImages.length === 0 ? (
+                              <label className="cursor-pointer block text-center">
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  multiple
+                                  onChange={(e) => {
+                                    const files = Array.from(e.target.files || []);
+                                    setGrokImages(files);
+                                    const previews = files.map(file => URL.createObjectURL(file));
+                                    setGrokImagePreviews(previews);
+                                  }}
+                                  className="hidden"
+                                  disabled={isGenerating}
+                                />
+                                <div className="py-3">
+                                  <div className="text-white/60 text-xs mb-1">Click to upload image</div>
+                                  <div className="text-white/40 text-[10px]">This will be animated into video</div>
+                                </div>
+                              </label>
+                            ) : (
+                              <div className="space-y-2">
+                                <div className="grid grid-cols-2 gap-2">
+                                  {grokImagePreviews.map((preview, index) => (
+                                    <div key={index} className="relative group">
+                                      <img
+                                        src={preview}
+                                        alt={`Preview ${index + 1}`}
+                                        className="w-full h-24 object-cover rounded-lg border border-white/10"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setGrokImages(prev => prev.filter((_, i) => i !== index));
+                                          setGrokImagePreviews(prev => {
+                                            const newPreviews = prev.filter((_, i) => i !== index);
+                                            URL.revokeObjectURL(prev[index]);
+                                            return newPreviews;
+                                          });
+                                        }}
+                                        className="absolute top-1 right-1 p-1 bg-red-500 hover:bg-red-600 rounded text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                        disabled={isGenerating}
+                                      >
+                                        <X className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Aspect Ratio (only for text mode) */}
+                      {grokInputMode === 'text' && (
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-white mb-2">Aspect Ratio</label>
+                          <div className="grid grid-cols-3 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setGrokAspectRatio('2:3')}
+                              disabled={isGenerating}
+                              className={`py-2.5 px-3 rounded-lg text-xs font-semibold transition-all ${
+                                grokAspectRatio === '2:3'
+                                  ? 'bg-white text-black shadow-sm'
+                                  : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                              }`}
+                            >
+                              2:3 (Portrait)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setGrokAspectRatio('1:1')}
+                              disabled={isGenerating}
+                              className={`py-2.5 px-3 rounded-lg text-xs font-semibold transition-all ${
+                                grokAspectRatio === '1:1'
+                                  ? 'bg-white text-black shadow-sm'
+                                  : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                              }`}
+                            >
+                              1:1 (Square)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setGrokAspectRatio('3:2')}
+                              disabled={isGenerating}
+                              className={`py-2.5 px-3 rounded-lg text-xs font-semibold transition-all ${
+                                grokAspectRatio === '3:2'
+                                  ? 'bg-white text-black shadow-sm'
+                                  : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                              }`}
+                            >
+                              3:2 (Landscape)
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-white mb-2">Generation Mode</label>
+                        <div className="grid grid-cols-3 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setGrokMode('normal')}
+                            disabled={isGenerating}
+                            className={`py-2.5 px-3 rounded-lg text-xs font-semibold transition-all ${
+                              grokMode === 'normal'
+                                ? 'bg-white text-black shadow-sm'
+                                : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                            }`}
+                          >
+                            Normal
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setGrokMode('fun')}
+                            disabled={isGenerating}
+                            className={`py-2.5 px-3 rounded-lg text-xs font-semibold transition-all ${
+                              grokMode === 'fun'
+                                ? 'bg-white text-black shadow-sm'
+                                : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                            }`}
+                          >
+                            Fun
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setGrokMode('spicy')}
+                            disabled={isGenerating}
+                            className={`py-2.5 px-3 rounded-lg text-xs font-semibold transition-all ${
+                              grokMode === 'spicy'
+                                ? 'bg-white text-black shadow-sm'
+                                : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                            }`}
+                          >
+                            Spicy
+                          </button>
+                        </div>
+                        <p className="mt-2 text-[10px] text-white/40">
+                          {grokMode === 'normal' && 'Standard video generation'}
+                          {grokMode === 'fun' && 'More creative and playful motion'}
+                          {grokMode === 'spicy' && 'Bold and dynamic motion effects'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Suno Music Settings */}
+                  {(selectedModel === 'suno-v3.5' || selectedModel === 'suno-v4.5' || selectedModel === 'suno-v5') && (
+                    <div className="space-y-4">
+                      {/* Custom Mode Toggle */}
+                      <div>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={sunoCustomMode}
+                            onChange={(e) => setSunoCustomMode(e.target.checked)}
+                            disabled={isGenerating}
+                            className="w-4 h-4 rounded border-white/20 bg-white/5 text-white focus:ring-white/20"
+                          />
+                          <span className="text-xs font-bold uppercase tracking-wider text-white">Custom Mode</span>
+                          <span className="text-[10px] text-white/40">(Advanced controls)</span>
+                        </label>
+                      </div>
+
+                      {/* Instrumental Toggle */}
+                      <div>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={sunoInstrumental}
+                            onChange={(e) => setSunoInstrumental(e.target.checked)}
+                            disabled={isGenerating}
+                            className="w-4 h-4 rounded border-white/20 bg-white/5 text-white focus:ring-white/20"
+                          />
+                          <span className="text-xs font-bold uppercase tracking-wider text-white">Instrumental</span>
+                          <span className="text-[10px] text-white/40">(No lyrics)</span>
+                        </label>
+                      </div>
+
+                      {/* Style (Custom Mode only) */}
+                      {sunoCustomMode && (
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-white mb-2">
+                            Style <span className="text-[10px] text-white/40">(Genre, mood)</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={sunoStyle}
+                            onChange={(e) => setSunoStyle(e.target.value)}
+                            placeholder="e.g. Jazz, Classical, Electronic, Pop"
+                            disabled={isGenerating}
+                            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-white/30 focus:border-white/30 focus:outline-none"
+                          />
+                        </div>
+                      )}
+
+                      {/* Title (Custom Mode only) */}
+                      {sunoCustomMode && (
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-white mb-2">
+                            Title <span className="text-[10px] text-white/40">(Max 80 chars)</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={sunoTitle}
+                            onChange={(e) => setSunoTitle(e.target.value.slice(0, 80))}
+                            placeholder="Song title"
+                            disabled={isGenerating}
+                            maxLength={80}
+                            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-white/30 focus:border-white/30 focus:outline-none"
+                          />
+                        </div>
+                      )}
+
+                      {/* Negative Tags */}
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-white mb-2">
+                          Negative Tags <span className="text-[10px] text-white/40">(Styles to avoid)</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={sunoNegativeTags}
+                          onChange={(e) => setSunoNegativeTags(e.target.value)}
+                          placeholder="e.g. Heavy Metal, Upbeat Drums"
+                          disabled={isGenerating}
+                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-white/30 focus:border-white/30 focus:outline-none"
+                        />
+                      </div>
+
+                      {/* Vocal Gender */}
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-white mb-2">
+                          Vocal Gender <span className="text-[10px] text-white/40">(Optional)</span>
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSunoVocalGender('')}
+                            disabled={isGenerating}
+                            className={`py-2.5 px-3 rounded-lg text-xs font-semibold transition-all ${
+                              sunoVocalGender === ''
+                                ? 'bg-white text-black shadow-sm'
+                                : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                            }`}
+                          >
+                            Auto
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSunoVocalGender('m')}
+                            disabled={isGenerating}
+                            className={`py-2.5 px-3 rounded-lg text-xs font-semibold transition-all ${
+                              sunoVocalGender === 'm'
+                                ? 'bg-white text-black shadow-sm'
+                                : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                            }`}
+                          >
+                            Male
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSunoVocalGender('f')}
+                            disabled={isGenerating}
+                            className={`py-2.5 px-3 rounded-lg text-xs font-semibold transition-all ${
+                              sunoVocalGender === 'f'
+                                ? 'bg-white text-black shadow-sm'
+                                : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                            }`}
+                          >
+                            Female
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Advanced Sliders */}
+                      <div className="space-y-3 pt-2 border-t border-white/10">
+                        <div className="text-[10px] text-white/40 uppercase tracking-wider font-bold">Advanced Controls</div>
+                        
+                        {/* Style Weight */}
+                        <div>
+                          <label className="block text-xs font-bold text-white mb-2">
+                            Style Weight: {sunoStyleWeight}
+                          </label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={sunoStyleWeight}
+                            onChange={(e) => setSunoStyleWeight(parseFloat(e.target.value))}
+                            disabled={isGenerating}
+                            className="w-full"
+                          />
+                          <p className="mt-1 text-[10px] text-white/40">Strength of adherence to specified style</p>
+                        </div>
+
+                        {/* Weirdness Constraint */}
+                        <div>
+                          <label className="block text-xs font-bold text-white mb-2">
+                            Creativity: {sunoWeirdnessConstraint}
+                          </label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={sunoWeirdnessConstraint}
+                            onChange={(e) => setSunoWeirdnessConstraint(parseFloat(e.target.value))}
+                            disabled={isGenerating}
+                            className="w-full"
+                          />
+                          <p className="mt-1 text-[10px] text-white/40">Controls experimental/creative deviation</p>
+                        </div>
+
+                        {/* Audio Weight */}
+                        <div>
+                          <label className="block text-xs font-bold text-white mb-2">
+                            Audio Weight: {sunoAudioWeight}
+                          </label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={sunoAudioWeight}
+                            onChange={(e) => setSunoAudioWeight(parseFloat(e.target.value))}
+                            disabled={isGenerating}
+                            className="w-full"
+                          />
+                          <p className="mt-1 text-[10px] text-white/40">Balance weight for audio features</p>
                         </div>
                       </div>
                     </div>

@@ -5,6 +5,8 @@ import { createVeoTask } from '@/lib/veo-ai';
 import { create4oImageTask } from '@/lib/openai-image';
 import { createIdeogramTask } from '@/lib/ideogram-ai';
 import { createQwenTask } from '@/lib/qwen-ai';
+import { createGrokTask } from '@/lib/grok-ai';
+import { createSunoTask } from '@/lib/suno-ai';
 import { generations } from '@/lib/storage';
 import { Connection, clusterApiUrl } from '@solana/web3.js';
 import { verifyUSDCPayment } from '@/lib/solana-payment';
@@ -394,6 +396,130 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           { 
             error: 'Failed to initiate video generation',
+            message: error.message,
+          },
+          { status: 500 }
+        );
+      }
+    }
+
+    // For Grok Imagine, create task immediately
+    if (model === 'grok-imagine') {
+      try {
+        console.log('Creating Grok Imagine task with options:', options);
+        
+        // Check if image-to-video mode requires images
+        if (options?.grokInputMode === 'image' && (!options?.imageUrls || options.imageUrls.length === 0)) {
+          console.error('❌ Grok Imagine image-to-video requires input images');
+          return NextResponse.json(
+            { 
+              error: 'Image-to-video mode requires at least one input image',
+              message: 'Please upload an image to convert to video, or switch to text-to-video mode.',
+            },
+            { status: 400 }
+          );
+        }
+        
+        const grokResponse = await createGrokTask({
+          imageUrls: options?.imageUrls,
+          prompt,
+          mode: options?.mode || 'normal',
+          aspect_ratio: options?.aspect_ratio,
+          grokInputMode: options?.grokInputMode,
+        });
+
+        const grokTaskId = grokResponse.taskId;
+        
+        console.log('Grok Imagine task created:', grokTaskId);
+
+        // Track payment info for potential refunds
+        if (userWallet && paymentSignature) {
+          trackPayment({
+            taskId: grokTaskId,
+            userWallet,
+            amount: actualAmountPaid,
+            paymentMethod: effectivePaymentMethod,
+            paymentSignature,
+            model: 'grok-imagine',
+            timestamp: new Date(),
+          });
+        }
+
+        // Return taskId directly - NO Map storage needed!
+        return NextResponse.json({
+          success: true,
+          taskId: grokTaskId,
+          message: 'Video generation started',
+          status: 'processing',
+          model: 'grok-imagine',
+        });
+      } catch (error: any) {
+        console.error('Failed to create Grok Imagine task:', error);
+        return NextResponse.json(
+          { 
+            error: 'Failed to initiate video generation',
+            message: error.message,
+          },
+          { status: 500 }
+        );
+      }
+    }
+
+    // For Suno music generation (all versions)
+    if (model === 'suno-v3.5' || model === 'suno-v4.5' || model === 'suno-v5') {
+      try {
+        console.log('Creating Suno music task with prompt:', prompt);
+        console.log('Options:', options);
+        
+        // Map model ID to Suno API model version
+        const sunoModelVersion = model === 'suno-v3.5' ? 'V3_5' : model === 'suno-v4.5' ? 'V4_5' : 'V5';
+        
+        const sunoResponse = await createSunoTask({
+          prompt,
+          customMode: options?.customMode ?? false,
+          instrumental: options?.instrumental ?? false,
+          model: sunoModelVersion,
+          style: options?.style,
+          title: options?.title,
+          negativeTags: options?.negativeTags,
+          vocalGender: options?.vocalGender,
+          styleWeight: options?.styleWeight,
+          weirdnessConstraint: options?.weirdnessConstraint,
+          audioWeight: options?.audioWeight,
+          personaId: options?.personaId,
+          callBackUrl: 'https://kie.ai/callback',
+        });
+
+        const sunoTaskId = sunoResponse.data.taskId;
+        
+        console.log('Suno music task created:', sunoTaskId);
+
+        // Track payment info for potential refunds
+        if (userWallet && paymentSignature) {
+          trackPayment({
+            taskId: sunoTaskId,
+            userWallet,
+            amount: actualAmountPaid,
+            paymentMethod: effectivePaymentMethod,
+            paymentSignature,
+            model: model,
+            timestamp: new Date(),
+          });
+        }
+
+        // Return taskId directly
+        return NextResponse.json({
+          success: true,
+          taskId: sunoTaskId,
+          message: 'Music generation started',
+          status: 'processing',
+          model: model,
+        });
+      } catch (error: any) {
+        console.error('Failed to create Suno music task:', error);
+        return NextResponse.json(
+          { 
+            error: 'Failed to initiate music generation',
             message: error.message,
           },
           { status: 500 }

@@ -91,8 +91,8 @@ export default function Home() {
                     >
                       Copy
                     </button>
-                  </div>
                 </div>
+              </div>
 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -107,11 +107,11 @@ export default function Home() {
                   <div className="p-6 bg-white/5 border border-white/10 rounded-lg">
                     <div className="text-3xl font-bold text-white mb-1">$0.108</div>
                     <div className="text-sm text-white/50">Starting Price</div>
-                  </div>
+                </div>
                   <div className="p-6 bg-white/5 border border-white/10 rounded-lg">
                     <div className="text-3xl font-bold text-white mb-1">100%</div>
                     <div className="text-sm text-white/50">On-Chain</div>
-                  </div>
+                </div>
                 </div>
               </div>
             </div>
@@ -265,15 +265,15 @@ export default function Home() {
               <p className="text-base md:text-lg text-white/50 mb-8 max-w-2xl mx-auto">
                 Connect your wallet and start generating with premium AI models
               </p>
-              <Link
-                href="/dashboard"
+                <Link
+                  href="/dashboard"
                 className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-forge-orange to-forge-red text-white font-bold rounded-lg hover:shadow-lg hover:shadow-forge-orange/30 transition-all duration-300 hover:scale-105"
-              >
+                >
                 Launch Dashboard
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
-              </Link>
+                </Link>
             </div>
           </section>
 
@@ -289,7 +289,7 @@ export default function Home() {
                     height={32} 
                   />
                   <span className="font-bold text-white text-lg">Gen402</span>
-                </div>
+                  </div>
                 <p className="text-white/50 text-sm leading-relaxed">
                   Professional AI generation platform using HTTP 402 payment protocol.
                 </p>

@@ -7,7 +7,7 @@ interface GenerationProgressProps {
   status: 'pending' | 'processing' | 'completed';
   elapsedTime: number; // in seconds
   estimatedTotal?: number; // in seconds
-  type?: 'image' | 'video';
+  type?: 'image' | 'video' | 'music';
 }
 
 export default function GenerationProgress({
@@ -30,7 +30,7 @@ export default function GenerationProgress({
 
   const statusText = {
     pending: 'Initializing generation...',
-    processing: type === 'image' ? 'Creating your image...' : 'Creating your video...',
+    processing: type === 'image' ? 'Creating your image...' : type === 'music' ? 'Creating your music...' : 'Creating your video...',
     completed: 'Complete!',
   };
 

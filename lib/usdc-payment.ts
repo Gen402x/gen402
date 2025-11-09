@@ -196,7 +196,7 @@ export async function sendDirectUSDCPayment(
         console.log('⏩ Proceeding with transaction anyway (simulation errors can be false positives)');
         // Don't return error - continue with actual transaction
       } else {
-        console.log('✅ Transaction simulation OK');
+      console.log('✅ Transaction simulation OK');
       }
     } catch (simError: any) {
       console.warn('⚠️  Could not simulate transaction:', simError.message);
