@@ -474,9 +474,26 @@ export async function POST(request: NextRequest) {
         // Map model ID to Suno API model version
         const sunoModelVersion = model === 'suno-v3.5' ? 'V3_5' : model === 'suno-v4.5' ? 'V4_5' : 'V5';
         
+        // Detect if user is in custom mode with vocals but provided a description instead of lyrics
+        const isCustomWithVocals = (options?.customMode === true) && (options?.instrumental === false);
+        const looksLikeDescription = prompt.toLowerCase().includes('song about') || 
+                                      prompt.toLowerCase().includes('i want') ||
+                                      prompt.toLowerCase().includes('create a') ||
+                                      prompt.toLowerCase().includes('make a') ||
+                                      (prompt.split(' ').length < 20 && !prompt.includes('['));
+        
+        let finalPrompt = prompt;
+        let finalCustomMode = options?.customMode ?? false;
+        
+        if (isCustomWithVocals && looksLikeDescription) {
+          console.log('⚠️  Detected description in custom vocal mode, switching to non-custom mode for AI lyric generation');
+          finalCustomMode = false;
+          finalPrompt = prompt;
+        }
+        
         const sunoResponse = await createSunoTask({
-          prompt,
-          customMode: options?.customMode ?? false,
+          prompt: finalPrompt,
+          customMode: finalCustomMode,
           instrumental: options?.instrumental ?? false,
           model: sunoModelVersion,
           style: options?.style,

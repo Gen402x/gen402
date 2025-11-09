@@ -2010,6 +2010,21 @@ export default function ChatDashboard() {
                           <span className="text-xs font-bold uppercase tracking-wider text-white">Custom Mode</span>
                           <span className="text-[10px] text-white/40">(Advanced controls)</span>
                         </label>
+                        <div className="mt-2 px-3 py-2 bg-white/5 border border-white/10 rounded-lg">
+                          <p className="text-[10px] text-white/60 leading-relaxed">
+                            {sunoCustomMode && !sunoInstrumental ? (
+                              <>
+                                <span className="font-semibold text-white/80">💡 Tip:</span> In Custom Mode with vocals, your prompt will be used as the actual lyrics. 
+                                Write your song text with [Verse], [Chorus] tags. If you want AI to generate lyrics, turn off Custom Mode.
+                              </>
+                            ) : (
+                              <>
+                                <span className="font-semibold text-white/80">💡 Tip:</span> Custom Mode OFF = describe what you want (AI generates lyrics). 
+                                Custom Mode ON = full control over style, title, and lyrics structure.
+                              </>
+                            )}
+                          </p>
+                        </div>
                       </div>
 
                       {/* Instrumental Toggle */}
