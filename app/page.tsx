@@ -67,12 +67,11 @@ export default function Home() {
                     Documentation
                   </Link>
                 </div>
-              </div>
 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="p-6 bg-white/5 border border-white/10 rounded-lg">
-                    <div className="text-3xl font-bold text-white mb-1">5</div>
+                    <div className="text-3xl font-bold text-white mb-1">9</div>
                     <div className="text-sm text-white/50">AI Models</div>
                   </div>
                   <div className="p-6 bg-white/5 border border-white/10 rounded-lg">
@@ -80,13 +79,13 @@ export default function Home() {
                     <div className="text-sm text-white/50">Payment Confirm</div>
                   </div>
                   <div className="p-6 bg-white/5 border border-white/10 rounded-lg">
-                    <div className="text-3xl font-bold text-white mb-1">$0.108</div>
+                    <div className="text-3xl font-bold text-white mb-1">$0.01</div>
                     <div className="text-sm text-white/50">Starting Price</div>
-                </div>
+                  </div>
                   <div className="p-6 bg-white/5 border border-white/10 rounded-lg">
                     <div className="text-3xl font-bold text-white mb-1">100%</div>
                     <div className="text-sm text-white/50">On-Chain</div>
-                </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -108,7 +107,7 @@ export default function Home() {
                       <h3 className="text-2xl font-bold group-hover:text-forge-red transition-colors duration-300">Sora 2</h3>
                       <span className="px-3 py-1 bg-forge-red/20 border border-forge-red/30 rounded-full text-xs font-bold text-forge-red group-hover:bg-forge-red/30 transition-all duration-300">VIDEO</span>
                     </div>
-                    <p className="text-white/60 leading-relaxed group-hover:text-white/80 transition-colors duration-300">OpenAI's breakthrough video generation model. Create cinematic sequences up to 15 seconds.</p>
+                    <p className="text-white/60 leading-relaxed group-hover:text-white/80 transition-colors duration-300">OpenAI breakthrough video generation model. Create cinematic sequences up to 15 seconds.</p>
                   </div>
                   <div className="text-right">
                     <div className="text-3xl font-black text-white mb-1 group-hover:scale-110 transition-transform duration-300">$0.924</div>
@@ -125,7 +124,7 @@ export default function Home() {
                       <h3 className="text-2xl font-bold group-hover:text-forge-red transition-colors duration-300">Veo 3.1</h3>
                       <span className="px-3 py-1 bg-forge-red/20 border border-forge-red/30 rounded-full text-xs font-bold text-forge-red group-hover:bg-forge-red/30 transition-all duration-300">VIDEO</span>
                     </div>
-                    <p className="text-white/60 leading-relaxed group-hover:text-white/80 transition-colors duration-300">Google's advanced video AI. Transform text and images into high-quality video content.</p>
+                    <p className="text-white/60 leading-relaxed group-hover:text-white/80 transition-colors duration-300">Google advanced video AI. Transform text and images into high-quality video content.</p>
                   </div>
                   <div className="text-right">
                     <div className="text-3xl font-black text-white mb-1 group-hover:scale-110 transition-transform duration-300">$1.296</div>
@@ -142,7 +141,7 @@ export default function Home() {
                       <h3 className="text-2xl font-bold group-hover:text-forge-amber transition-colors duration-300">GPT-Image</h3>
                       <span className="px-3 py-1 bg-forge-amber/20 border border-forge-amber/30 rounded-full text-xs font-bold text-forge-amber group-hover:bg-forge-amber/30 transition-all duration-300">IMAGE</span>
                     </div>
-                    <p className="text-white/60 leading-relaxed group-hover:text-white/80 transition-colors duration-300">OpenAI's latest image generation technology. Photorealistic results with precise control.</p>
+                    <p className="text-white/60 leading-relaxed group-hover:text-white/80 transition-colors duration-300">OpenAI latest image generation technology. Photorealistic results with precise control.</p>
                   </div>
                   <div className="text-right">
                     <div className="text-3xl font-black text-white mb-1 group-hover:scale-110 transition-transform duration-300">$0.152</div>
@@ -176,10 +175,61 @@ export default function Home() {
                       <h3 className="text-2xl font-bold group-hover:text-forge-amber transition-colors duration-300">Qwen</h3>
                       <span className="px-3 py-1 bg-forge-amber/20 border border-forge-amber/30 rounded-full text-xs font-bold text-forge-amber group-hover:bg-forge-amber/30 transition-all duration-300">IMAGE</span>
                     </div>
-                    <p className="text-white/60 leading-relaxed group-hover:text-white/80 transition-colors duration-300">Alibaba Cloud's high-performance model. Fast generation with excellent quality-to-cost ratio.</p>
+                    <p className="text-white/60 leading-relaxed group-hover:text-white/80 transition-colors duration-300">Alibaba Cloud high-performance model. Fast generation with excellent quality-to-cost ratio.</p>
                   </div>
                   <div className="text-right">
                     <div className="text-3xl font-black text-white mb-1 group-hover:scale-110 transition-transform duration-300">$0.108</div>
+                    <div className="text-sm text-white/40">per generation</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Suno V3.5 */}
+              <div className="group p-8 bg-gradient-to-r from-white/5 to-transparent border border-white/10 rounded-2xl hover:border-purple-500/30 hover:bg-gradient-to-r hover:from-purple-500/5 hover:to-transparent transition-all duration-500 cursor-pointer hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/10">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-3">
+                      <h3 className="text-2xl font-bold group-hover:text-purple-400 transition-colors duration-300">Suno V3.5</h3>
+                      <span className="px-3 py-1 bg-purple-500/20 border border-purple-500/30 rounded-full text-xs font-bold text-purple-400 group-hover:bg-purple-500/30 transition-all duration-300">MUSIC</span>
+                    </div>
+                    <p className="text-white/60 leading-relaxed group-hover:text-white/80 transition-colors duration-300">Better song structure and quality. Generate music up to 4 minutes long.</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-3xl font-black text-white mb-1 group-hover:scale-110 transition-transform duration-300">$0.01</div>
+                    <div className="text-sm text-white/40">per generation</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Suno V4.5 */}
+              <div className="group p-8 bg-gradient-to-r from-white/5 to-transparent border border-white/10 rounded-2xl hover:border-purple-500/30 hover:bg-gradient-to-r hover:from-purple-500/5 hover:to-transparent transition-all duration-500 cursor-pointer hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/10">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-3">
+                      <h3 className="text-2xl font-bold group-hover:text-purple-400 transition-colors duration-300">Suno V4.5</h3>
+                      <span className="px-3 py-1 bg-purple-500/20 border border-purple-500/30 rounded-full text-xs font-bold text-purple-400 group-hover:bg-purple-500/30 transition-all duration-300">MUSIC</span>
+                    </div>
+                    <p className="text-white/60 leading-relaxed group-hover:text-white/80 transition-colors duration-300">Smarter prompts and faster generation. Create songs up to 8 minutes long.</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-3xl font-black text-white mb-1 group-hover:scale-110 transition-transform duration-300">$0.012</div>
+                    <div className="text-sm text-white/40">per generation</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Suno V5 */}
+              <div className="group p-8 bg-gradient-to-r from-white/5 to-transparent border border-white/10 rounded-2xl hover:border-purple-500/30 hover:bg-gradient-to-r hover:from-purple-500/5 hover:to-transparent transition-all duration-500 cursor-pointer hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/10">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-3">
+                      <h3 className="text-2xl font-bold group-hover:text-purple-400 transition-colors duration-300">Suno V5</h3>
+                      <span className="px-3 py-1 bg-purple-500/20 border border-purple-500/30 rounded-full text-xs font-bold text-purple-400 group-hover:bg-purple-500/30 transition-all duration-300">MUSIC</span>
+                    </div>
+                    <p className="text-white/60 leading-relaxed group-hover:text-white/80 transition-colors duration-300">Superior musicality and fastest generation. Professional quality songs up to 8 minutes.</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-3xl font-black text-white mb-1 group-hover:scale-110 transition-transform duration-300">$0.015</div>
                     <div className="text-sm text-white/40">per generation</div>
                   </div>
                 </div>
@@ -240,15 +290,15 @@ export default function Home() {
               <p className="text-base md:text-lg text-white/50 mb-8 max-w-2xl mx-auto">
                 Connect your wallet and start generating with premium AI models
               </p>
-                <Link
-                  href="/dashboard"
+              <Link
+                href="/dashboard"
                 className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-forge-orange to-forge-red text-white font-bold rounded-lg hover:shadow-lg hover:shadow-forge-orange/30 transition-all duration-300 hover:scale-105"
-                >
+              >
                 Launch Dashboard
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
-                </Link>
+              </Link>
             </div>
           </section>
 
@@ -264,7 +314,7 @@ export default function Home() {
                     height={32} 
                   />
                   <span className="font-bold text-white text-lg">Gen402</span>
-                  </div>
+                </div>
                 <p className="text-white/50 text-sm leading-relaxed">
                   Professional AI generation platform using HTTP 402 payment protocol.
                 </p>
