@@ -13,11 +13,7 @@ import { verifyUSDCPayment } from '@/lib/solana-payment';
 import { queueBuybackContribution } from '@/lib/buyback-queue';
 import { BUYBACK_FEE_PERCENTAGE } from '@/lib/token-price';
 import { trackPayment } from '@/lib/payment-tracking';
-<<<<<<< HEAD
-import { saveGeneration } from '@/lib/analytics-tracking';
-=======
 import { supabaseAdmin } from '@/lib/supabase';
->>>>>>> 902647f9c96d141ad1b7b5b4232e7299193e382e
 
 // Store for pending payments (i produktion, brug database)
 const pendingPayments = new Map<string, {

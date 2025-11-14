@@ -11,11 +11,7 @@ import { getPaymentInfo, clearPaymentTracking } from '@/lib/payment-tracking';
 import { sendRefund } from '@/lib/refund';
 import { Connection, clusterApiUrl } from '@solana/web3.js';
 import { getModelById } from '@/lib/models';
-<<<<<<< HEAD
-import { updateGenerationStatus } from '@/lib/analytics-tracking';
-=======
 import { updateGenerationStatus } from '@/app/api/generate/route';
->>>>>>> 902647f9c96d141ad1b7b5b4232e7299193e382e
 
 export async function GET(
   request: NextRequest,
@@ -125,11 +121,7 @@ export async function GET(
         // Clear payment tracking on success
         clearPaymentTracking(taskId);
         
-<<<<<<< HEAD
-        // Update analytics status
-=======
         // Update Supabase generation status
->>>>>>> 902647f9c96d141ad1b7b5b4232e7299193e382e
         await updateGenerationStatus(taskId, 'completed', supabaseUrls);
         
         return NextResponse.json({
