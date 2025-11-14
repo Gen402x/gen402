@@ -13,6 +13,7 @@ import { verifyUSDCPayment } from '@/lib/solana-payment';
 import { queueBuybackContribution } from '@/lib/buyback-queue';
 import { BUYBACK_FEE_PERCENTAGE } from '@/lib/token-price';
 import { trackPayment } from '@/lib/payment-tracking';
+import { saveGeneration } from '@/lib/analytics-tracking';
 
 // Store for pending payments (i produktion, brug database)
 const pendingPayments = new Map<string, {
@@ -23,6 +24,37 @@ const pendingPayments = new Map<string, {
   amount: number;
   createdAt: Date;
 }>();
+
+// Helper function to save generation to analytics
+async function trackGeneration(
+  taskId: string,
+  userWallet: string,
+  model: string,
+  prompt: string,
+  type: 'image' | 'video' | 'music',
+  options: any,
+  amountPaid: number,
+  paymentMethod: 'payper' | 'usdc',
+  paymentSignature: string
+) {
+  const modelInfo = getModelById(model);
+  if (!modelInfo) return;
+
+  await saveGeneration({
+    user_wallet: userWallet,
+    generation_id: taskId,
+    model: model,
+    model_name: modelInfo.name,
+    provider: modelInfo.provider,
+    type: type,
+    prompt: prompt,
+    options: options || {},
+    amount_usd: amountPaid,
+    payment_method: paymentMethod,
+    payment_signature: paymentSignature,
+    status: 'processing',
+  });
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -105,7 +137,8 @@ export async function POST(request: NextRequest) {
       ? amountPaidUSD
       : modelInfo.price;
 
-    const effectivePaymentMethod: 'payper' | 'usdc' = paymentMethod === 'usdc' ? 'usdc' : 'payper';
+    // GEN402 payments disabled - always use USDC
+    const effectivePaymentMethod: 'payper' | 'usdc' = 'usdc';
 
     console.log('💰 Expected payment amount:', actualAmountPaid, 'USDC');
     
@@ -178,6 +211,19 @@ export async function POST(request: NextRequest) {
             timestamp: new Date(),
           });
           console.log('✅ Payment tracked for taskId:', taskId);
+
+          // Save to analytics
+          await trackGeneration(
+            taskId,
+            userWallet,
+            'gpt-image-1',
+            prompt,
+            'image',
+            options,
+            actualAmountPaid,
+            effectivePaymentMethod,
+            paymentSignature
+          );
         } else {
           console.warn('⚠️ Payment NOT tracked - missing userWallet or paymentSignature');
         }
@@ -233,6 +279,19 @@ export async function POST(request: NextRequest) {
             model: 'ideogram',
             timestamp: new Date(),
           });
+
+          // Save to analytics
+          await trackGeneration(
+            taskId,
+            userWallet,
+            'ideogram',
+            prompt,
+            'image',
+            options,
+            actualAmountPaid,
+            effectivePaymentMethod,
+            paymentSignature
+          );
         }
 
         return NextResponse.json({
@@ -287,6 +346,19 @@ export async function POST(request: NextRequest) {
             model: 'qwen',
             timestamp: new Date(),
           });
+
+          // Save to analytics
+          await trackGeneration(
+            taskId,
+            userWallet,
+            'qwen',
+            prompt,
+            'image',
+            options,
+            actualAmountPaid,
+            effectivePaymentMethod,
+            paymentSignature
+          );
         }
 
         return NextResponse.json({
@@ -334,6 +406,19 @@ export async function POST(request: NextRequest) {
             model: 'sora-2',
             timestamp: new Date(),
           });
+
+          // Save to analytics
+          await trackGeneration(
+            kieTaskId,
+            userWallet,
+            'sora-2',
+            prompt,
+            'video',
+            options,
+            actualAmountPaid,
+            effectivePaymentMethod,
+            paymentSignature
+          );
         }
 
         // Return taskId directly - NO Map storage needed!
@@ -381,6 +466,19 @@ export async function POST(request: NextRequest) {
             model: 'veo-3.1',
             timestamp: new Date(),
           });
+
+          // Save to analytics
+          await trackGeneration(
+            veoTaskId,
+            userWallet,
+            'veo-3.1',
+            prompt,
+            'video',
+            options,
+            actualAmountPaid,
+            effectivePaymentMethod,
+            paymentSignature
+          );
         }
 
         // Return taskId directly - NO Map storage needed!
@@ -443,6 +541,19 @@ export async function POST(request: NextRequest) {
             model: 'grok-imagine',
             timestamp: new Date(),
           });
+
+          // Save to analytics
+          await trackGeneration(
+            grokTaskId,
+            userWallet,
+            'grok-imagine',
+            prompt,
+            'video',
+            options,
+            actualAmountPaid,
+            effectivePaymentMethod,
+            paymentSignature
+          );
         }
 
         // Return taskId directly - NO Map storage needed!
@@ -522,6 +633,19 @@ export async function POST(request: NextRequest) {
             model: model,
             timestamp: new Date(),
           });
+
+          // Save to analytics
+          await trackGeneration(
+            sunoTaskId,
+            userWallet,
+            model,
+            prompt,
+            'music',
+            options,
+            actualAmountPaid,
+            effectivePaymentMethod,
+            paymentSignature
+          );
         }
 
         // Return taskId directly

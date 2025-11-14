@@ -11,6 +11,7 @@ import { getPaymentInfo, clearPaymentTracking } from '@/lib/payment-tracking';
 import { sendRefund } from '@/lib/refund';
 import { Connection, clusterApiUrl } from '@solana/web3.js';
 import { getModelById } from '@/lib/models';
+import { updateGenerationStatus } from '@/lib/analytics-tracking';
 
 export async function GET(
   request: NextRequest,
@@ -23,7 +24,8 @@ export async function GET(
     
     // Get payment info from headers (sent by frontend during polling)
     const userWallet = request.headers.get('X-User-Wallet') || undefined;
-    const paymentMethod = (request.headers.get('X-Payment-Method') || 'payper') as 'payper' | 'usdc';
+    // GEN402 payments disabled - always use USDC
+    const paymentMethod = (request.headers.get('X-Payment-Method') || 'usdc') as 'payper' | 'usdc';
     const amountPaidHeaderRaw = request.headers.get('X-Amount-Paid');
     const amountPaidHeader = amountPaidHeaderRaw ? Number(amountPaidHeaderRaw) : undefined;
 
@@ -119,6 +121,9 @@ export async function GET(
         // Clear payment tracking on success
         clearPaymentTracking(taskId);
         
+        // Update analytics status
+        await updateGenerationStatus(taskId, 'completed', supabaseUrls);
+        
         return NextResponse.json({
           success: true,
           taskId: data.taskId,
@@ -152,7 +157,8 @@ export async function GET(
             : (headerAmount && headerAmount > 0)
               ? headerAmount
               : modelPrice;
-          const resolvedMethod: 'payper' | 'usdc' = paymentMethodUsed === 'usdc' ? 'usdc' : 'payper';
+          // GEN402 payments disabled - always use USDC
+          const resolvedMethod: 'payper' | 'usdc' = 'usdc';
 
           console.log('💸 Initiating refund for content policy violation...');
           console.log('👤 User wallet:', userWallet);
@@ -554,7 +560,8 @@ export async function GET(
             : (headerAmount && headerAmount > 0)
               ? headerAmount
               : modelPrice;
-          const resolvedMethod: 'payper' | 'usdc' = paymentMethodUsed === 'usdc' ? 'usdc' : 'payper';
+          // GEN402 payments disabled - always use USDC
+          const resolvedMethod: 'payper' | 'usdc' = 'usdc';
 
           console.log('💸 Initiating refund for content policy violation...');
           console.log('👤 User wallet:', userWallet);

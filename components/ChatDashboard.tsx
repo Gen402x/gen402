@@ -470,7 +470,7 @@ export default function ChatDashboard() {
           const resultResponse = await axios.get(pollUrl, {
             headers: {
               'X-User-Wallet': userWallet || walletAddress || '',
-              'X-Payment-Method': paymentMethod || 'payper',
+              'X-Payment-Method': paymentMethod || 'usdc',
               'X-Amount-Paid': amountPaidUSD != null ? amountPaidUSD.toString() : '',
             }
           });

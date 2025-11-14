@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { X, Loader2, Wallet } from 'lucide-react';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { sendDirectUSDCPayment } from '@/lib/usdc-payment';
-import { sendCustomTokenPayment, calculateCustomTokenAmount } from '@/lib/custom-token-payment';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -29,10 +28,13 @@ export default function PaymentModal({
   const [transactionSignature, setTransactionSignature] = useState('');
   const [isLoadingPrice, setIsLoadingPrice] = useState(true);
   const [showDetails, setShowDetails] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'usdc' | 'custom'>('custom');
+  const [paymentMethod, setPaymentMethod] = useState<'usdc' | 'custom'>('usdc');
   const [usdcAmount, setUsdcAmount] = useState<number>(0);
   const [customTokenAmount, setCustomTokenAmount] = useState<number>(0);
   const [customTokenPrice, setCustomTokenPrice] = useState<number | null>(null);
+  
+  // GEN402 payments are disabled
+  const GEN402_ENABLED = false;
   
   const { connected, publicKey, signTransaction } = useWallet();
   const { connection } = useConnection();
@@ -41,27 +43,18 @@ export default function PaymentModal({
   const fetchTokenPrice = async () => {
     setIsLoadingPrice(true);
     try {
-      // Calculate USDC price (2x markup, no additional fee)
-      const usdcAmount = amount * 2;
+      // Calculate USDC price (1:1 - NO MARKUP)
+      const usdcAmount = amount;
       setUsdcAmount(usdcAmount);
       console.log('💵 USDC amount:', usdcAmount.toFixed(3), 'USDC');
       
-      // Calculate custom token amount (no markup)
-      try {
-        const { tokenAmount, tokenPrice } = await calculateCustomTokenAmount(amount);
-        setCustomTokenAmount(tokenAmount);
-        setCustomTokenPrice(tokenPrice);
-        console.log('🪙 Custom token amount:', tokenAmount.toFixed(2));
-        console.log('💰 Custom token price:', tokenPrice);
-      } catch (customError) {
-        console.error('Error fetching custom token price:', customError);
-        setCustomTokenAmount(0);
-        setCustomTokenPrice(null);
-      }
+      // GEN402 token payments are disabled
+      setCustomTokenAmount(0);
+      setCustomTokenPrice(null);
     } catch (error) {
       console.error('Error fetching token price:', error);
       // Fallback
-      const usdcAmount = amount * 2;
+      const usdcAmount = amount;
       setUsdcAmount(usdcAmount);
       
       // Custom token fallback
@@ -92,12 +85,7 @@ export default function PaymentModal({
       return;
     }
     
-    if (paymentMethod === 'usdc' && usdcAmount === 0) {
-      setErrorMessage('Please wait for price to load');
-      return;
-    }
-
-    if (paymentMethod === 'custom' && customTokenAmount === 0) {
+    if (usdcAmount === 0) {
       setErrorMessage('Please wait for price to load');
       return;
     }
@@ -106,62 +94,32 @@ export default function PaymentModal({
     setErrorMessage('');
     
     try {
-      if (paymentMethod === 'custom') {
-        console.log('🪙 Starting custom token payment:', customTokenAmount.toFixed(2), 'tokens for', amount, 'USD');
-        
-        // Send custom token payment via Solana
-        const result = await sendCustomTokenPayment(
-          connection,
-          publicKey,
-          signTransaction,
-          amount
-        );
+      console.log('💵 Starting USDC payment:', usdcAmount.toFixed(3), 'USDC');
+      
+      // Send USDC payment
+      const result = await sendDirectUSDCPayment(
+        connection,
+        publicKey,
+        signTransaction,
+        usdcAmount
+      );
 
-        if (result.success && result.signature) {
-          console.log('✅ Custom token payment successful!');
-          console.log('Signature:', result.signature);
-          
-          setTransactionSignature(result.signature);
-          setPaymentStatus('completed');
-          
-          // Wait a bit and call onPaymentComplete with signature
-          setTimeout(() => {
-            onPaymentComplete(result.signature);
-            onClose();
-          }, 2000);
-        } else {
-          console.error('❌ Custom token payment failed:', result.error);
-          setPaymentStatus('error');
-          setErrorMessage(result.error || 'Payment failed. Please try again.');
-        }
+      if (result.success && result.signature) {
+        console.log('✅ USDC Payment successful!');
+        console.log('Signature:', result.signature);
+        
+        setTransactionSignature(result.signature);
+        setPaymentStatus('completed');
+        
+        // Wait a bit and call onPaymentComplete with signature
+        setTimeout(() => {
+          onPaymentComplete(result.signature);
+          onClose();
+        }, 2000);
       } else {
-        console.log('💵 Starting USDC payment:', usdcAmount.toFixed(3), 'USDC');
-        
-        // Send USDC payment
-        const result = await sendDirectUSDCPayment(
-          connection,
-          publicKey,
-          signTransaction,
-          usdcAmount
-        );
-
-        if (result.success && result.signature) {
-          console.log('✅ USDC Payment successful!');
-          console.log('Signature:', result.signature);
-          
-          setTransactionSignature(result.signature);
-          setPaymentStatus('completed');
-          
-          // Wait a bit and call onPaymentComplete with signature
-          setTimeout(() => {
-            onPaymentComplete(result.signature);
-            onClose();
-          }, 2000);
-        } else {
-          console.error('❌ USDC Payment failed:', result.error);
-          setPaymentStatus('error');
-          setErrorMessage(result.error || 'USDC payment failed. Please try again.');
-        }
+        console.error('❌ USDC Payment failed:', result.error);
+        setPaymentStatus('error');
+        setErrorMessage(result.error || 'USDC payment failed. Please try again.');
       }
     } catch (error: any) {
       console.error('❌ Payment error:', error);
@@ -249,45 +207,19 @@ export default function PaymentModal({
               ? 'opacity-0 -translate-y-4 max-h-0 overflow-hidden pointer-events-none' 
               : 'opacity-100 translate-y-0 max-h-[600px]'
           }`}>
-            {/* Payment Method Selector */}
+            {/* Payment Method Display (GEN402 disabled) */}
             <div className="space-y-3">
               <div className="text-center">
                 <p className="text-xs font-bold uppercase tracking-wider text-white/80 mb-1">Payment Method</p>
                 <p className="text-[10px] text-white/40">
-                  GEN402 offers 1:1 pricing, USDC is 2x premium
+                  Pay with USDC on Solana
                 </p>
               </div>
               <div className="flex gap-3 p-1.5 bg-white/5 border border-white/10 rounded-xl">
-                <button
-                  onClick={() => setPaymentMethod('custom')}
-                  disabled={isLoadingPrice || paymentStatus === 'processing' || paymentStatus === 'completed' || customTokenAmount === 0}
-                  className={`relative flex-1 py-3 px-4 rounded-lg text-xs font-bold uppercase tracking-[0.15em] transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                    paymentMethod === 'custom'
-                      ? 'bg-white text-black shadow-lg'
-                      : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
-                  }`}
-                >
-                  GEN402
-                  <span className="absolute -top-1.5 -right-1.5 bg-green-500 text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold shadow-lg">
-                    BEST
-                  </span>
-                  <span className="block text-[9px] font-normal mt-1 opacity-70">1:1 Price</span>
-                </button>
-                <button
-                  onClick={() => setPaymentMethod('usdc')}
-                  disabled={isLoadingPrice || paymentStatus === 'processing' || paymentStatus === 'completed'}
-                  className={`relative flex-1 py-3 px-4 rounded-lg text-xs font-bold uppercase tracking-[0.15em] transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                    paymentMethod === 'usdc'
-                      ? 'bg-white text-black shadow-lg'
-                      : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
-                  }`}
-                >
+                <div className="relative flex-1 py-3 px-4 rounded-lg text-xs font-bold uppercase tracking-[0.15em] bg-white text-black shadow-lg text-center">
                   USDC
-                  <span className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold shadow-lg">
-                    2x
-                  </span>
-                  <span className="block text-[9px] font-normal mt-1 opacity-70">Premium</span>
-                </button>
+                  <span className="block text-[9px] font-normal mt-1 opacity-70">Only Available</span>
+                </div>
               </div>
             </div>
 
@@ -297,25 +229,18 @@ export default function PaymentModal({
                 <div className="text-5xl sm:text-6xl font-bold tabular-nums text-white tracking-tight">
                 {isLoadingPrice ? (
                     <Loader2 className="w-12 h-12 animate-spin text-white/40" />
-                ) : paymentMethod === 'custom' ? (
-                  customTokenAmount.toFixed(2)
                 ) : (
                   usdcAmount.toFixed(3)
                 )}
               </div>
                 <div className="text-[11px] sm:text-xs text-white/40 uppercase tracking-[0.25em] font-bold">
-                  {paymentMethod === 'custom' ? 'GEN402 on Solana' : 'USDC on Solana'}
+                  USDC on Solana
                 </div>
               
               {/* Token Price Info */}
-              {!isLoadingPrice && paymentMethod === 'usdc' && (
+              {!isLoadingPrice && (
                 <div className="text-xs text-white/50 font-light mt-2">
                   1 USDC = $1.00 USD
-                </div>
-              )}
-              {!isLoadingPrice && paymentMethod === 'custom' && customTokenPrice && (
-                <div className="text-xs text-white/50 font-light mt-2">
-                  1 GEN402 = ${customTokenPrice.toFixed(6)} USD
                 </div>
               )}
               </div>
@@ -324,21 +249,13 @@ export default function PaymentModal({
             {/* Details */}
             <div className="space-y-1 text-sm bg-white/5 border border-white/10 rounded-xl p-4">
               <div className="flex justify-between items-baseline py-2">
-                <span className="text-white/40 font-light uppercase text-xs tracking-wider">Base Price</span>
+                <span className="text-white/40 font-light uppercase text-xs tracking-wider">Price</span>
                 <span className="text-white/80 font-medium">${amount.toFixed(3)}</span>
               </div>
-              {paymentMethod === 'usdc' && (
-                <div className="flex justify-between items-baseline py-2">
-                  <span className="text-white/40 font-light uppercase text-xs tracking-wider">Premium (2x)</span>
-                  <span className="text-white/80 font-medium">${(amount * 2).toFixed(3)}</span>
-                </div>
-              )}
               <div className="flex justify-between items-baseline py-2 border-t border-white/10 pt-3 mt-2">
                 <span className="text-white/60 font-bold uppercase text-xs tracking-wider">Total Payment</span>
                 <span className="text-white font-bold">
-                  {paymentMethod === 'custom'
-                    ? `${customTokenAmount.toFixed(2)} GEN402`
-                    : `${usdcAmount.toFixed(3)} USDC`}
+                  {usdcAmount.toFixed(3)} USDC
                 </span>
               </div>
               <button
@@ -358,17 +275,9 @@ export default function PaymentModal({
               >
                 <div className="space-y-1 border-t border-white/10 pt-3 text-sm">
                   <div className="flex justify-between items-baseline py-2">
-                    <span className="text-white/30 font-light uppercase text-[10px] tracking-wider">Buyback (10%)</span>
-                    <span className="text-white/50 font-light text-xs">
-                      $${(amount * 0.1).toFixed(3)} USD
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-baseline py-2">
                     <span className="text-white/30 font-light uppercase text-[10px] tracking-wider">We Receive</span>
                     <span className="text-white/70 font-medium text-xs">
-                      {paymentMethod === 'custom'
-                        ? `${customTokenAmount.toFixed(2)} GEN402`
-                        : `${usdcAmount.toFixed(3)} USDC`}
+                      {usdcAmount.toFixed(3)} USDC
                     </span>
                   </div>
                   <div className="flex justify-between items-baseline py-2">
@@ -476,11 +385,7 @@ export default function PaymentModal({
               ) : paymentStatus === 'error' ? (
                 <span>Try Again</span>
               ) : (
-                <span>
-                  {paymentMethod === 'custom'
-                    ? `Pay ${customTokenAmount.toFixed(2)} GEN402`
-                    : `Pay ${usdcAmount.toFixed(3)} USDC`}
-                </span>
+                <span>Pay {usdcAmount.toFixed(3)} USDC</span>
               )}
             </button>
           )}
