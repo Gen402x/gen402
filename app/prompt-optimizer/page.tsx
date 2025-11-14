@@ -13,10 +13,10 @@ export default function PromptOptimizerPage() {
         <main className="flex-1 flex items-center justify-center min-h-screen">
           <div className="text-center">
             <h1 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-forge-orange to-forge-red mb-4">
-              Kommer Snart
+              Coming Soon
             </h1>
             <p className="text-xl md:text-2xl text-white/60">
-              Vi arbejder på noget fantastisk
+              We're building something amazing
             </p>
           </div>
         </main>
