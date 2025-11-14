@@ -13,7 +13,11 @@ import { verifyUSDCPayment } from '@/lib/solana-payment';
 import { queueBuybackContribution } from '@/lib/buyback-queue';
 import { BUYBACK_FEE_PERCENTAGE } from '@/lib/token-price';
 import { trackPayment } from '@/lib/payment-tracking';
+<<<<<<< HEAD
 import { saveGeneration } from '@/lib/analytics-tracking';
+=======
+import { supabaseAdmin } from '@/lib/supabase';
+>>>>>>> 902647f9c96d141ad1b7b5b4232e7299193e382e
 
 // Store for pending payments (i produktion, brug database)
 const pendingPayments = new Map<string, {
@@ -25,35 +29,84 @@ const pendingPayments = new Map<string, {
   createdAt: Date;
 }>();
 
-// Helper function to save generation to analytics
-async function trackGeneration(
-  taskId: string,
-  userWallet: string,
-  model: string,
-  prompt: string,
-  type: 'image' | 'video' | 'music',
-  options: any,
-  amountPaid: number,
-  paymentMethod: 'payper' | 'usdc',
-  paymentSignature: string
-) {
-  const modelInfo = getModelById(model);
-  if (!modelInfo) return;
+// Helper function to save generation to Supabase
+async function saveGenerationToSupabase(data: {
+  userWallet: string;
+  generationId: string;
+  model: string;
+  modelName: string;
+  provider: string;
+  type: 'image' | 'video' | 'music';
+  prompt: string;
+  options: any;
+  amountUsd: number;
+  paymentMethod: 'payper' | 'usdc';
+  paymentSignature: string;
+  chatId?: string;
+}) {
+  try {
+    const { error } = await supabaseAdmin
+      .from('generations')
+      .insert({
+        user_wallet: data.userWallet,
+        generation_id: data.generationId,
+        model: data.model,
+        model_name: data.modelName,
+        provider: data.provider,
+        type: data.type,
+        prompt: data.prompt,
+        options: data.options || {},
+        amount_usd: data.amountUsd,
+        payment_method: data.paymentMethod,
+        payment_signature: data.paymentSignature,
+        chat_id: data.chatId || null,
+        status: 'processing',
+      });
 
-  await saveGeneration({
-    user_wallet: userWallet,
-    generation_id: taskId,
-    model: model,
-    model_name: modelInfo.name,
-    provider: modelInfo.provider,
-    type: type,
-    prompt: prompt,
-    options: options || {},
-    amount_usd: amountPaid,
-    payment_method: paymentMethod,
-    payment_signature: paymentSignature,
-    status: 'processing',
-  });
+    if (error) {
+      console.error('Failed to save generation to Supabase:', error);
+    } else {
+      console.log('✅ Generation saved to Supabase:', data.generationId);
+    }
+  } catch (error) {
+    console.error('Error saving generation to Supabase:', error);
+  }
+}
+
+// Helper function to update generation status in Supabase
+export async function updateGenerationStatus(
+  generationId: string,
+  status: 'completed' | 'failed',
+  resultUrls?: string[],
+  errorMessage?: string
+) {
+  try {
+    const updateData: any = {
+      status,
+      completed_at: new Date().toISOString(),
+    };
+
+    if (resultUrls && resultUrls.length > 0) {
+      updateData.result_urls = resultUrls;
+    }
+
+    if (errorMessage) {
+      updateData.error_message = errorMessage;
+    }
+
+    const { error } = await supabaseAdmin
+      .from('generations')
+      .update(updateData)
+      .eq('generation_id', generationId);
+
+    if (error) {
+      console.error('Failed to update generation status:', error);
+    } else {
+      console.log(`✅ Generation ${generationId} updated to ${status}`);
+    }
+  } catch (error) {
+    console.error('Error updating generation status:', error);
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -196,6 +249,23 @@ export async function POST(request: NextRequest) {
         
         console.log('4o Image task created:', taskId);
 
+        // Save to Supabase
+        if (userWallet && paymentSignature) {
+          await saveGenerationToSupabase({
+            userWallet,
+            generationId: taskId,
+            model: 'gpt-image-1',
+            modelName: modelInfo.name,
+            provider: 'OpenAI',
+            type: 'image',
+            prompt,
+            options,
+            amountUsd: actualAmountPaid,
+            paymentMethod: effectivePaymentMethod,
+            paymentSignature,
+          });
+        }
+
         // Track payment info for potential refunds
         console.log('🔍 Tracking payment - userWallet:', userWallet);
         console.log('🔍 Tracking payment - paymentSignature:', paymentSignature);
@@ -268,6 +338,23 @@ export async function POST(request: NextRequest) {
         
         console.log('Ideogram task created:', taskId);
 
+        // Save to Supabase
+        if (userWallet && paymentSignature) {
+          await saveGenerationToSupabase({
+            userWallet,
+            generationId: taskId,
+            model: 'ideogram',
+            modelName: modelInfo.name,
+            provider: 'Ideogram',
+            type: 'image',
+            prompt,
+            options,
+            amountUsd: actualAmountPaid,
+            paymentMethod: effectivePaymentMethod,
+            paymentSignature,
+          });
+        }
+
         // Track payment info for potential refunds
         if (userWallet && paymentSignature) {
           trackPayment({
@@ -335,6 +422,23 @@ export async function POST(request: NextRequest) {
         
         console.log('Qwen task created:', taskId);
 
+        // Save to Supabase
+        if (userWallet && paymentSignature) {
+          await saveGenerationToSupabase({
+            userWallet,
+            generationId: taskId,
+            model: 'qwen',
+            modelName: modelInfo.name,
+            provider: 'Alibaba',
+            type: 'image',
+            prompt,
+            options,
+            amountUsd: actualAmountPaid,
+            paymentMethod: effectivePaymentMethod,
+            paymentSignature,
+          });
+        }
+
         // Track payment info for potential refunds
         if (userWallet && paymentSignature) {
           trackPayment({
@@ -395,6 +499,23 @@ export async function POST(request: NextRequest) {
         
         console.log('Sora 2 task created:', kieTaskId);
 
+        // Save to Supabase
+        if (userWallet && paymentSignature) {
+          await saveGenerationToSupabase({
+            userWallet,
+            generationId: kieTaskId,
+            model: 'sora-2',
+            modelName: modelInfo.name,
+            provider: 'OpenAI',
+            type: 'video',
+            prompt,
+            options,
+            amountUsd: actualAmountPaid,
+            paymentMethod: effectivePaymentMethod,
+            paymentSignature,
+          });
+        }
+
         // Track payment info for potential refunds
         if (userWallet && paymentSignature) {
           trackPayment({
@@ -454,6 +575,23 @@ export async function POST(request: NextRequest) {
         const veoTaskId = veoResponse.data.taskId;
         
         console.log('Veo 3.1 task created:', veoTaskId);
+
+        // Save to Supabase
+        if (userWallet && paymentSignature) {
+          await saveGenerationToSupabase({
+            userWallet,
+            generationId: veoTaskId,
+            model: 'veo-3.1',
+            modelName: modelInfo.name,
+            provider: 'Google',
+            type: 'video',
+            prompt,
+            options,
+            amountUsd: actualAmountPaid,
+            paymentMethod: effectivePaymentMethod,
+            paymentSignature,
+          });
+        }
 
         // Track payment info for potential refunds
         if (userWallet && paymentSignature) {
@@ -529,6 +667,23 @@ export async function POST(request: NextRequest) {
         const grokTaskId = grokResponse.taskId;
         
         console.log('Grok Imagine task created:', grokTaskId);
+
+        // Save to Supabase
+        if (userWallet && paymentSignature) {
+          await saveGenerationToSupabase({
+            userWallet,
+            generationId: grokTaskId,
+            model: 'grok-imagine',
+            modelName: modelInfo.name,
+            provider: 'xAI',
+            type: 'video',
+            prompt,
+            options,
+            amountUsd: actualAmountPaid,
+            paymentMethod: effectivePaymentMethod,
+            paymentSignature,
+          });
+        }
 
         // Track payment info for potential refunds
         if (userWallet && paymentSignature) {
@@ -621,6 +776,23 @@ export async function POST(request: NextRequest) {
         const sunoTaskId = sunoResponse.data.taskId;
         
         console.log('Suno music task created:', sunoTaskId);
+
+        // Save to Supabase
+        if (userWallet && paymentSignature) {
+          await saveGenerationToSupabase({
+            userWallet,
+            generationId: sunoTaskId,
+            model: model,
+            modelName: modelInfo.name,
+            provider: 'Suno',
+            type: 'music',
+            prompt,
+            options,
+            amountUsd: actualAmountPaid,
+            paymentMethod: effectivePaymentMethod,
+            paymentSignature,
+          });
+        }
 
         // Track payment info for potential refunds
         if (userWallet && paymentSignature) {

@@ -11,7 +11,11 @@ import { getPaymentInfo, clearPaymentTracking } from '@/lib/payment-tracking';
 import { sendRefund } from '@/lib/refund';
 import { Connection, clusterApiUrl } from '@solana/web3.js';
 import { getModelById } from '@/lib/models';
+<<<<<<< HEAD
 import { updateGenerationStatus } from '@/lib/analytics-tracking';
+=======
+import { updateGenerationStatus } from '@/app/api/generate/route';
+>>>>>>> 902647f9c96d141ad1b7b5b4232e7299193e382e
 
 export async function GET(
   request: NextRequest,
@@ -121,7 +125,11 @@ export async function GET(
         // Clear payment tracking on success
         clearPaymentTracking(taskId);
         
+<<<<<<< HEAD
         // Update analytics status
+=======
+        // Update Supabase generation status
+>>>>>>> 902647f9c96d141ad1b7b5b4232e7299193e382e
         await updateGenerationStatus(taskId, 'completed', supabaseUrls);
         
         return NextResponse.json({
@@ -181,6 +189,9 @@ export async function GET(
               console.log('✅ Refund successful:', refundResult.signature);
               clearPaymentTracking(taskId);
               
+              // Update Supabase generation status
+              await updateGenerationStatus(taskId, 'failed', undefined, `Content policy violation: ${errorMessage}`);
+              
               return NextResponse.json(
                 {
                   success: false,
@@ -206,6 +217,9 @@ export async function GET(
         }
 
         // Standard failed response (no refund or refund failed)
+        // Update Supabase generation status
+        await updateGenerationStatus(taskId, 'failed', undefined, errorMessage || 'Content policy violation');
+        
         return NextResponse.json(
           {
             success: false,
@@ -248,6 +262,9 @@ export async function GET(
         
         const imageUrl = supabaseUrls[0];
         
+        // Update Supabase generation status
+        await updateGenerationStatus(taskId, 'completed', supabaseUrls);
+        
         return NextResponse.json({
           success: true,
           taskId: data.taskId,
@@ -258,6 +275,9 @@ export async function GET(
           model: 'ideogram',
         });
       } else if (data.state === 'fail') {
+        // Update Supabase generation status
+        await updateGenerationStatus(taskId, 'failed', undefined, data.failMsg || 'Generation failed');
+        
         return NextResponse.json(
           {
             success: false,
@@ -298,6 +318,9 @@ export async function GET(
         
         const imageUrl = supabaseUrls[0];
         
+        // Update Supabase generation status
+        await updateGenerationStatus(taskId, 'completed', supabaseUrls);
+        
         return NextResponse.json({
           success: true,
           taskId: data.taskId,
@@ -308,6 +331,9 @@ export async function GET(
           model: 'qwen',
         });
       } else if (data.state === 'fail') {
+        // Update Supabase generation status
+        await updateGenerationStatus(taskId, 'failed', undefined, data.failMsg || 'Generation failed');
+        
         return NextResponse.json(
           {
             success: false,
@@ -340,6 +366,9 @@ export async function GET(
         const videoUrl = data.response.resultUrls[0];
         console.log('🎥 FINAL VIDEO URL:', videoUrl);
         
+        // Update Supabase generation status
+        await updateGenerationStatus(taskId, 'completed', data.response.resultUrls);
+        
         return NextResponse.json({
           success: true,
           taskId: data.taskId,
@@ -351,6 +380,9 @@ export async function GET(
         });
       } else if (data.successFlag === 2 || data.successFlag === 3) {
         // Failed
+        // Update Supabase generation status
+        await updateGenerationStatus(taskId, 'failed', undefined, data.errorMessage || 'Generation failed');
+        
         return NextResponse.json(
           {
             success: false,
@@ -393,6 +425,9 @@ export async function GET(
         // Clear payment tracking on success
         clearPaymentTracking(taskId);
         
+        // Update Supabase generation status
+        await updateGenerationStatus(taskId, 'completed', supabaseUrls);
+        
         return NextResponse.json({
           success: true,
           taskId: data.taskId,
@@ -408,6 +443,9 @@ export async function GET(
         
         // Clear payment tracking on failure
         clearPaymentTracking(taskId);
+        
+        // Update Supabase generation status
+        await updateGenerationStatus(taskId, 'failed', undefined, data.failMsg || 'Generation failed');
         
         return NextResponse.json(
           {
@@ -456,6 +494,9 @@ export async function GET(
           // Clear payment tracking on success
           clearPaymentTracking(taskId);
           
+          // Update Supabase generation status
+          await updateGenerationStatus(taskId, 'completed', supabaseUrls);
+          
           return NextResponse.json({
             success: true,
             taskId: data.taskId,
@@ -485,6 +526,9 @@ export async function GET(
         
         // Clear payment tracking on failure
         clearPaymentTracking(taskId);
+        
+        // Update Supabase generation status
+        await updateGenerationStatus(taskId, 'failed', undefined, data.errorMessage || 'Music generation failed');
         
         return NextResponse.json(
           {
@@ -522,6 +566,9 @@ export async function GET(
         
         // Clear payment tracking on success
         clearPaymentTracking(taskId);
+        
+        // Update Supabase generation status
+        await updateGenerationStatus(taskId, 'completed', result.resultUrls);
         
         return NextResponse.json({
           success: true,
@@ -584,6 +631,9 @@ export async function GET(
               console.log('✅ Refund successful:', refundResult.signature);
               clearPaymentTracking(taskId);
               
+              // Update Supabase generation status
+              await updateGenerationStatus(taskId, 'failed', undefined, `Content policy violation: ${failMsg}`);
+              
               return NextResponse.json(
                 {
                   success: false,
@@ -609,6 +659,9 @@ export async function GET(
         }
 
         // Standard failed response (no refund or refund failed)
+        // Update Supabase generation status
+        await updateGenerationStatus(taskId, 'failed', undefined, data.failMsg || 'Generation failed');
+        
         return NextResponse.json(
           {
             success: false,
