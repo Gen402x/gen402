@@ -2,14 +2,30 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy initialization to avoid build-time errors
+let openai: OpenAI | null = null;
+
+function getOpenAI() {
+  if (!openai && process.env.OPENAI_API_KEY) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openai;
+}
 
 /**
  * POST - Send en besked og få AI respons (GRATIS!)
  */
 export async function POST(request: NextRequest) {
+  // Feature is coming soon
+  if (!process.env.OPENAI_API_KEY) {
+    return NextResponse.json(
+      { error: 'Prompt Optimizer is coming soon!' },
+      { status: 503 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { 
@@ -87,7 +103,15 @@ export async function POST(request: NextRequest) {
     console.log('🤖 Calling OpenAI with', messages.length, 'messages');
 
     // Kald OpenAI API
-    const completion = await openai.chat.completions.create({
+    const openaiClient = getOpenAI();
+    if (!openaiClient) {
+      return NextResponse.json(
+        { error: 'OpenAI client not available' },
+        { status: 503 }
+      );
+    }
+
+    const completion = await openaiClient.chat.completions.create({
       model: 'gpt-4-turbo-preview',
       messages,
       temperature: 0.8,
