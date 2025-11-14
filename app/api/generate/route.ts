@@ -277,19 +277,6 @@ export async function POST(request: NextRequest) {
             timestamp: new Date(),
           });
           console.log('✅ Payment tracked for taskId:', taskId);
-
-          // Save to analytics
-          await trackGeneration(
-            taskId,
-            userWallet,
-            'gpt-image-1',
-            prompt,
-            'image',
-            options,
-            actualAmountPaid,
-            effectivePaymentMethod,
-            paymentSignature
-          );
         } else {
           console.warn('⚠️ Payment NOT tracked - missing userWallet or paymentSignature');
         }
@@ -362,19 +349,6 @@ export async function POST(request: NextRequest) {
             model: 'ideogram',
             timestamp: new Date(),
           });
-
-          // Save to analytics
-          await trackGeneration(
-            taskId,
-            userWallet,
-            'ideogram',
-            prompt,
-            'image',
-            options,
-            actualAmountPaid,
-            effectivePaymentMethod,
-            paymentSignature
-          );
         }
 
         return NextResponse.json({
@@ -446,19 +420,6 @@ export async function POST(request: NextRequest) {
             model: 'qwen',
             timestamp: new Date(),
           });
-
-          // Save to analytics
-          await trackGeneration(
-            taskId,
-            userWallet,
-            'qwen',
-            prompt,
-            'image',
-            options,
-            actualAmountPaid,
-            effectivePaymentMethod,
-            paymentSignature
-          );
         }
 
         return NextResponse.json({
@@ -523,19 +484,6 @@ export async function POST(request: NextRequest) {
             model: 'sora-2',
             timestamp: new Date(),
           });
-
-          // Save to analytics
-          await trackGeneration(
-            kieTaskId,
-            userWallet,
-            'sora-2',
-            prompt,
-            'video',
-            options,
-            actualAmountPaid,
-            effectivePaymentMethod,
-            paymentSignature
-          );
         }
 
         // Return taskId directly - NO Map storage needed!
@@ -600,19 +548,6 @@ export async function POST(request: NextRequest) {
             model: 'veo-3.1',
             timestamp: new Date(),
           });
-
-          // Save to analytics
-          await trackGeneration(
-            veoTaskId,
-            userWallet,
-            'veo-3.1',
-            prompt,
-            'video',
-            options,
-            actualAmountPaid,
-            effectivePaymentMethod,
-            paymentSignature
-          );
         }
 
         // Return taskId directly - NO Map storage needed!
@@ -692,19 +627,6 @@ export async function POST(request: NextRequest) {
             model: 'grok-imagine',
             timestamp: new Date(),
           });
-
-          // Save to analytics
-          await trackGeneration(
-            grokTaskId,
-            userWallet,
-            'grok-imagine',
-            prompt,
-            'video',
-            options,
-            actualAmountPaid,
-            effectivePaymentMethod,
-            paymentSignature
-          );
         }
 
         // Return taskId directly - NO Map storage needed!
@@ -801,19 +723,6 @@ export async function POST(request: NextRequest) {
             model: model,
             timestamp: new Date(),
           });
-
-          // Save to analytics
-          await trackGeneration(
-            sunoTaskId,
-            userWallet,
-            model,
-            prompt,
-            'music',
-            options,
-            actualAmountPaid,
-            effectivePaymentMethod,
-            paymentSignature
-          );
         }
 
         // Return taskId directly
